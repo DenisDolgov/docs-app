@@ -18,6 +18,7 @@
     "@tiptap/extension-heading": "^3.31.0",
     "@tiptap/extension-highlight": "^3.31.0",
     "@tiptap/extension-image": "^3.30.6",
+    "@tiptap/extension-link": "^3.31.0",
     "@tiptap/extension-list": "^3.30.6",
     "@tiptap/extension-table": "^3.30.6",
     "@tiptap/extension-text-style": "^3.31.0",
