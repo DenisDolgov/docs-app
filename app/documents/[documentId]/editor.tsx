@@ -1,5 +1,6 @@
 'use client';
 
+import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
@@ -10,6 +11,7 @@ import StarterKit from '@tiptap/starter-kit';
 
 import { useEditorStore } from '@/store/use-editor-store';
 
+// todo use tiptap hooks for state sharing
 export const Editor = () => {
   const { setEditor } = useEditorStore();
 
@@ -62,12 +64,13 @@ export const Editor = () => {
       }),
       Underline,
       TextStyleKit,
+      Highlight.configure({ multicolor: true }),
     ],
     content:
       '<table>\n' +
       '          <tbody>\n' +
       '            <tr>\n' +
-      '              <th>Name</th>\n' +
+      '              <th><mark>Name</mark></th>\n' +
       '              <th colspan="3">Description</th>\n' +
       '            </tr>\n' +
       '            <tr>\n' +
