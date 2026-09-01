@@ -32,6 +32,9 @@ importers:
       '@tiptap/extension-table':
         specifier: ^3.30.6
         version: 3.30.6(@tiptap/core@3.30.2(@tiptap/pm@3.30.2))(@tiptap/pm@3.30.2)
+      '@tiptap/extension-text-align':
+        specifier: ^3.31.0
+        version: 3.31.0(@tiptap/core@3.30.2(@tiptap/pm@3.30.2))
       '@tiptap/extension-text-style':
         specifier: ^3.31.0
         version: 3.31.0(@tiptap/core@3.30.2(@tiptap/pm@3.30.2))
@@ -1089,6 +1092,11 @@ packages:
     peerDependencies:
       '@tiptap/core': 3.30.6
       '@tiptap/pm': 3.30.6
+
+  '@tiptap/extension-text-align@3.31.0':
+    resolution: {integrity: sha512-40hsX0anPQv87M3rD8vncqBIgED2xWUDTU/uL1fKTgeOm5BeiPJupxAV41ttI96T1suEAlghaaYrjs28ElK1fQ==}
+    peerDependencies:
+      '@tiptap/core': 3.31.0
 
   '@tiptap/extension-text-style@3.31.0':
     resolution: {integrity: sha512-eY8mIb/NS22sO1xJQqfzHtSdpL2UCQy1nbSCEohRUoW7eaP/nwp29x097+jjJnxg4LjLMsolyw11Q4mswbXDQQ==}
@@ -3657,6 +3665,10 @@ snapshots:
     dependencies:
       '@tiptap/core': 3.30.2(@tiptap/pm@3.30.2)
       '@tiptap/pm': 3.30.2
+
+  '@tiptap/extension-text-align@3.31.0(@tiptap/core@3.30.2(@tiptap/pm@3.30.2))':
+    dependencies:
+      '@tiptap/core': 3.30.2(@tiptap/pm@3.30.2)
 
   '@tiptap/extension-text-style@3.31.0(@tiptap/core@3.30.2(@tiptap/pm@3.30.2))':
     dependencies:
