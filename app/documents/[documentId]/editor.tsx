@@ -5,6 +5,7 @@ import Image from '@tiptap/extension-image'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
+import { TextStyleKit} from '@tiptap/extension-text-style'
 import { TableKit } from '@tiptap/extension-table'
 import { useEditorStore } from "@/store/use-editor-store";
 
@@ -58,6 +59,7 @@ export const Editor = () => {
                 },
             }),
             Underline,
+            TextStyleKit,
         ],
         content: '<table>\n' +
             '          <tbody>\n' +
