@@ -1,18 +1,50 @@
 'use client'
 
+import { TaskItem, TaskList } from '@tiptap/extension-list'
+import Image from '@tiptap/extension-image'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { TableKit } from '@tiptap/extension-table'
 
 export const Editor = () => {
     const editor = useEditor({
         editorProps: {
           attributes: {
-              // style: ''
               class: 'focus:outline-none print:border-0 bg-white border border-gray-100 flex flex-col min-h-[1054px] w-[816px] pt-10 px-14 pb-10 cursor-text'
           }
         },
-        extensions: [StarterKit],
-        content: '<p>Hello World! 🌎️</p>',
+        extensions: [
+            StarterKit,
+            TableKit.configure({
+                table: { resizable: true },
+            }),
+            TaskItem.configure({
+                nested: true,
+            }),
+            TaskList,
+            Image.configure({
+                resize: {
+                    enabled: true,
+                    alwaysPreserveAspectRatio: true,
+                },
+            }),
+        ],
+        content: '<table>\n' +
+            '          <tbody>\n' +
+            '            <tr>\n' +
+            '              <th>Name</th>\n' +
+            '              <th colspan="3">Description</th>\n' +
+            '            </tr>\n' +
+            '            <tr>\n' +
+            '              <td>Cyndi Lauper</td>\n' +
+            '              <td>Singer</td>\n' +
+            '              <td>Songwriter</td>\n' +
+            '              <td>Actress</td>\n' +
+            '            </tr>\n' +
+            '          </tbody>\n' +
+            '        </table>' +
+            '<img src="https://placehold.co/600x400" />\n' +
+            '        <img src="https://placehold.co/800x400" />',
         // Don't render immediately on the server to avoid SSR issues
         immediatelyRender: false,
     })
