@@ -11,7 +11,7 @@ import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
-import { Ruler } from '@/app/documents/[documentId]/Ruler';
+import { Ruler } from '@/app/documents/[documentId]/ruler';
 import { useEditorStore } from '@/store/use-editor-store';
 
 // todo use tiptap hooks for state sharing
