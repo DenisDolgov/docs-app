@@ -1,4 +1,5 @@
 import { Editor } from '@/app/documents/[documentId]/editor';
+import { Navbar } from '@/app/documents/[documentId]/navbar';
 import { Toolbar } from '@/app/documents/[documentId]/toolbar';
 
 interface DocumentIdPageProps {
@@ -11,7 +12,7 @@ const DocumentIdPage = async ({ params }: DocumentIdPageProps) => {
 
   return (
     <>
-      <div>Document ID: {documentId}</div>
+      <Navbar />
       <Toolbar />
       <Editor />
     </>
