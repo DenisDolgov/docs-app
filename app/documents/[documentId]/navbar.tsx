@@ -33,9 +33,58 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from '@/components/ui/menubar';
+import { useEditorStore } from '@/store/use-editor-store';
 
 // todo добавить шорткаты
 export const Navbar = () => {
+  const { editor } = useEditorStore();
+
+  const insertTable = (rows: number, cols: number) => {
+    editor
+      ?.chain()
+      .focus()
+      .insertTable({ rows, cols, withHeaderRow: false })
+      .run();
+  };
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+  };
+
+  const handleSaveJson = () => {
+    if (!editor) return;
+
+    const content = editor.getJSON();
+    const blob = new Blob([JSON.stringify(content)], {
+      type: 'application/json',
+    });
+    downloadBlob(blob, 'document.json');
+  };
+
+  const handleSaveHTML = () => {
+    if (!editor) return;
+
+    const content = editor.getHTML();
+    const blob = new Blob([content], {
+      type: 'text/html',
+    });
+    downloadBlob(blob, 'document.html');
+  };
+
+  const handleSaveText = () => {
+    if (!editor) return;
+
+    const content = editor.getText();
+    const blob = new Blob([content], {
+      type: 'text/plain',
+    });
+    downloadBlob(blob, 'document.txt');
+  };
+
   return (
     <nav className="flex items-center justify-between p-2">
       <div className="flex gap-2 items-center">
@@ -57,14 +106,12 @@ export const Navbar = () => {
                       Сохранить
                     </MenubarSubTrigger>
                     <MenubarSubContent>
-                      <MenubarItem>
-                        <FileJsonIcon className="size-4" />
-                        JSON
+                      <MenubarItem onClick={handleSaveJson}>JSON</MenubarItem>
+                      <MenubarItem onClick={handleSaveHTML}>HTML</MenubarItem>
+                      <MenubarItem onClick={() => window.print()}>
+                        PDF
                       </MenubarItem>
-                      <MenubarItem>
-                        <GlobeIcon className="size-4" />
-                        HTML
-                      </MenubarItem>
+                      <MenubarItem onClick={handleSaveText}>Text</MenubarItem>
                     </MenubarSubContent>
                   </MenubarSub>
                   <MenubarItem>
@@ -92,11 +139,15 @@ export const Navbar = () => {
                   Правка
                 </MenubarTrigger>
                 <MenubarContent>
-                  <MenubarItem>
+                  <MenubarItem
+                    onClick={() => editor?.chain().focus().undo().run()}
+                  >
                     <Undo2Icon className="size-4" />
                     Отменить <MenubarShortcut>⌘Z</MenubarShortcut>
                   </MenubarItem>
-                  <MenubarItem>
+                  <MenubarItem
+                    onClick={() => editor?.chain().focus().redo().run()}
+                  >
                     <Redo2Icon className="size-4" />
                     Повторить <MenubarShortcut>⌘Y</MenubarShortcut>
                   </MenubarItem>
@@ -109,10 +160,17 @@ export const Navbar = () => {
                 <MenubarContent>
                   <MenubarSub>
                     <MenubarSubTrigger>Таблица</MenubarSubTrigger>
+                    {/*todo вместо фиксированной размерности создать комонент для выбора динамической размерности*/}
                     <MenubarSubContent>
-                      <MenubarItem>1 x 1</MenubarItem>
-                      <MenubarItem>2 x 2</MenubarItem>
-                      <MenubarItem>3 x 3</MenubarItem>
+                      <MenubarItem onClick={() => insertTable(1, 1)}>
+                        1 x 1
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertTable(2, 2)}>
+                        2 x 2
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertTable(3, 3)}>
+                        3 x 3
+                      </MenubarItem>
                     </MenubarSubContent>
                   </MenubarSub>
                 </MenubarContent>
@@ -128,25 +186,45 @@ export const Navbar = () => {
                       Текст
                     </MenubarSubTrigger>
                     <MenubarSubContent>
-                      <MenubarItem>
+                      <MenubarItem
+                        onClick={() =>
+                          editor?.chain().focus().toggleBold().run()
+                        }
+                      >
                         <BoldIcon className="size-4" />
                         Полужирный
                       </MenubarItem>
-                      <MenubarItem>
+                      <MenubarItem
+                        onClick={() =>
+                          editor?.chain().focus().toggleItalic().run()
+                        }
+                      >
                         <ItalicIcon className="size-4" />
                         Курсив
                       </MenubarItem>
-                      <MenubarItem>
+                      <MenubarItem
+                        onClick={() =>
+                          editor?.chain().focus().toggleUnderline().run()
+                        }
+                      >
                         <UnderlineIcon className="size-4" />
                         Подчеркнутый
                       </MenubarItem>
-                      <MenubarItem>
+                      <MenubarItem
+                        onClick={() =>
+                          editor?.chain().focus().toggleStrike().run()
+                        }
+                      >
                         <StrikethroughIcon className="size-4" />
                         Зачеркнутый
                       </MenubarItem>
                     </MenubarSubContent>
                   </MenubarSub>
-                  <MenubarItem>
+                  <MenubarItem
+                    onClick={() =>
+                      editor?.chain().focus().unsetAllMarks().run()
+                    }
+                  >
                     <RemoveFormattingIcon className="size-4" />
                     Очистить форматирование
                   </MenubarItem>
