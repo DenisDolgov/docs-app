@@ -130,6 +130,10 @@
 }
 
 .tiptap {
+  /*todo иначе не работает line-height < normal*/
+  /* надо придумать как задать дефолтное значение в normal c корректным отображением line-height < normal */
+  line-height: 1;
+
   :first-child {
     margin-top: 0;
   }
