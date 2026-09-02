@@ -11,6 +11,7 @@ import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
+import { Ruler } from '@/app/documents/[documentId]/Ruler';
 import { useEditorStore } from '@/store/use-editor-store';
 
 // todo use tiptap hooks for state sharing
@@ -107,6 +108,7 @@ export const Editor = () => {
 
   return (
     <div className="size-full overflow-x-auto bg-gray-50 px-4 print:p-0 print:bg-white print:overflow-visible">
+      <Ruler />
       <div className="min-w-max flex justify-center w-[816px] py-4 print:p-0 mx-auto print:w-full print:min-w-0">
         <EditorContent editor={editor} />
       </div>
