@@ -1,3 +1,4 @@
+import { UserButton } from '@clerk/nextjs';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -13,7 +14,7 @@ export const HomeNavbar = () => {
         <h3 className="text-xl">Документы</h3>
       </div>
       <SearchInput />
-      <div />
+      <UserButton />
     </nav>
   );
 };
