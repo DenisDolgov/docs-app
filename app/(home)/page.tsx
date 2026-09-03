@@ -1,6 +1,5 @@
-import { Button } from '@/components/ui/button';
-
 import { HomeNavbar } from './home-navbar';
+import { TemplatesGallery } from './templates-gallery';
 
 const Home = () => {
   return (
@@ -9,8 +8,7 @@ const Home = () => {
         <HomeNavbar />
       </div>
       <div className="mt-16">
-        <p>Hello world!</p>
-        <Button>Button</Button>
+        <TemplatesGallery />
       </div>
     </div>
   );
