@@ -22,9 +22,26 @@ const checkAuth = async (ctx: QueryCtx | MutationCtx) => {
 };
 
 export const get = query({
-  args: { paginationOpts: paginationOptsValidator },
-  handler: async (ctx, args) => {
-    return await ctx.db.query('documents').paginate(args.paginationOpts);
+  args: {
+    paginationOpts: paginationOptsValidator,
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, { paginationOpts, search }) => {
+    const user = await checkAuth(ctx);
+
+    if (search) {
+      return await ctx.db
+        .query('documents')
+        .withSearchIndex('search_title', (q) =>
+          q.search('title', search).eq('ownerId', user.subject),
+        )
+        .paginate(paginationOpts);
+    }
+
+    return await ctx.db
+      .query('documents')
+      .withIndex('by_owner_id', (q) => q.eq('ownerId', user.subject))
+      .paginate(paginationOpts);
   },
 });
 
