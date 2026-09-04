@@ -7,6 +7,7 @@ import {
   type QueryCtx,
   query,
 } from '@/convex/_generated/server';
+import type { ClerkUserIdentity } from '@/convex/types';
 
 const checkAuth = async (ctx: QueryCtx | MutationCtx) => {
   const user = await ctx.auth.getUserIdentity();
@@ -18,7 +19,7 @@ const checkAuth = async (ctx: QueryCtx | MutationCtx) => {
     });
   }
 
-  return user;
+  return user as ClerkUserIdentity;
 };
 
 export const get = query({
@@ -29,8 +30,19 @@ export const get = query({
   handler: async (ctx, { paginationOpts, search }) => {
     const user = await checkAuth(ctx);
 
+    const organizationId = user.o?.id;
+
+    if (search && organizationId) {
+      return ctx.db
+        .query('documents')
+        .withSearchIndex('search_title', (q) =>
+          q.search('title', search).eq('organizationId', organizationId),
+        )
+        .paginate(paginationOpts);
+    }
+
     if (search) {
-      return await ctx.db
+      return ctx.db
         .query('documents')
         .withSearchIndex('search_title', (q) =>
           q.search('title', search).eq('ownerId', user.subject),
@@ -38,7 +50,16 @@ export const get = query({
         .paginate(paginationOpts);
     }
 
-    return await ctx.db
+    if (organizationId) {
+      return ctx.db
+        .query('documents')
+        .withIndex('by_organization_id', (q) =>
+          q.eq('organizationId', organizationId),
+        )
+        .paginate(paginationOpts);
+    }
+
+    return ctx.db
       .query('documents')
       .withIndex('by_owner_id', (q) => q.eq('ownerId', user.subject))
       .paginate(paginationOpts);
@@ -53,9 +74,12 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const user = await checkAuth(ctx);
 
+    const organizationId = user.o?.id;
+
     return ctx.db.insert('documents', {
       title: args.title ?? 'Новый документ',
       ownerId: user.subject,
+      organizationId,
       initialContent: args.initialContent,
     });
   },
@@ -66,14 +90,24 @@ export const removeById = mutation({
     id: v.id('documents'),
   },
   handler: async (ctx, args) => {
-    await checkAuth(ctx);
-
+    const user = await checkAuth(ctx);
+    const organizationId = user.o?.id;
     const document = await ctx.db.get(args.id);
 
     if (!document) {
       throw new ConvexError({
         code: 'NOT_FOUND',
         message: 'Document not found',
+      });
+    }
+
+    const isOwner = document.ownerId === user.subject;
+    const isOrganizationMember = document.organizationId === organizationId;
+
+    if (!isOwner && !isOrganizationMember) {
+      throw new ConvexError({
+        code: 'FORBIDDEN',
+        message: 'Forbidden',
       });
     }
 
@@ -88,7 +122,7 @@ export const updateById = mutation({
   },
   handler: async (ctx, args) => {
     const user = await checkAuth(ctx);
-
+    const organizationId = user.o?.id;
     const document = await ctx.db.get(args.id);
 
     if (!document) {
@@ -99,8 +133,9 @@ export const updateById = mutation({
     }
 
     const isOwner = document.ownerId === user.subject;
+    const isOrganizationMember = document.organizationId === organizationId;
 
-    if (!isOwner) {
+    if (!isOwner && !isOrganizationMember) {
       throw new ConvexError({
         code: 'FORBIDDEN',
         message: 'Forbidden',

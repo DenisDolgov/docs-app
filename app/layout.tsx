@@ -4,6 +4,7 @@ import './globals.css';
 import { NuqsAdapter } from 'nuqs/adapters/next';
 
 import { ConvexClientProvider } from '@/components/convex-client-provider';
+import { Toaster } from '@/components/ui/toast';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -20,7 +21,10 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="en" className={`${inter.variable} antialiased`}>
       <body className="min-h-full flex flex-col">
         <NuqsAdapter>
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <ConvexClientProvider>
+            <Toaster />
+            {children}
+          </ConvexClientProvider>
         </NuqsAdapter>
       </body>
     </html>

@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/toast';
 import { api } from '@/convex/_generated/api';
 import type { Doc } from '@/convex/_generated/dataModel';
 
@@ -49,10 +50,17 @@ export const RenameDocumentDialog = ({
     if (!title.trim()) return;
 
     setIsUpdating(true);
-    update({ id: document._id, title }).finally(() => {
-      onOpenChange(false);
-      setIsUpdating(false);
-    });
+    update({ id: document._id, title })
+      .catch(() =>
+        toast.add({
+          type: 'error',
+          title: 'Не удалось переименовать документ',
+        }),
+      )
+      .finally(() => {
+        onOpenChange(false);
+        setIsUpdating(false);
+      });
   };
 
   return (

@@ -1,12 +1,11 @@
 'use client';
 
+import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import {
   BoldIcon,
   FileIcon,
-  FileJsonIcon,
   FilePenIcon,
   FilePlusIcon,
-  GlobeIcon,
   ItalicIcon,
   PrinterIcon,
   Redo2Icon,
@@ -233,6 +232,15 @@ export const Navbar = () => {
             </Menubar>
           </div>
         </div>
+      </div>
+      <div className="flex gap-3 pl-6">
+        <OrganizationSwitcher
+          afterCreateOrganizationUrl="/"
+          afterLeaveOrganizationUrl="/"
+          afterSelectOrganizationUrl="/"
+          afterSelectPersonalUrl="/"
+        />
+        <UserButton />
       </div>
     </nav>
   );
