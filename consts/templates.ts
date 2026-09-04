@@ -1,7 +1,7 @@
 export const templates = [
   {
     id: 'blank',
-    label: 'Пустой документ',
+    label: 'Новый документ',
     imageUrl:
       'https://ssl.gstatic.com/docs/templates/thumbnails/docs-blank-googlecolors.png',
   },

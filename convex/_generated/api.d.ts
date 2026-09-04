@@ -8,13 +8,13 @@
  * @module
  */
 
+import type * as documents from "../documents.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
-} from 'convex/server';
-
-import type * as documents from '../documents.js';
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   documents: typeof documents;
@@ -30,7 +30,7 @@ declare const fullApi: ApiFromModules<{
  */
 export declare const api: FilterApi<
   typeof fullApi,
-  FunctionReference<any, 'public'>
+  FunctionReference<any, "public">
 >;
 
 /**
@@ -43,7 +43,7 @@ export declare const api: FilterApi<
  */
 export declare const internal: FilterApi<
   typeof fullApi,
-  FunctionReference<any, 'internal'>
+  FunctionReference<any, "internal">
 >;
 
 export declare const components: {};
