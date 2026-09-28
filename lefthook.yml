@@ -4,9 +4,12 @@ pre-commit:
     check:
       glob: "*.{js,ts,jsx,tsx,json,jsonc,css}"
       run: pnpm biome check --write --no-errors-on-unmatched {staged_files} && git add {staged_files}
-    typecheck:
-      glob: "*.{ts,tsx}"
-      run: pnpm exec tsc --noEmit
+    typecheck-frontend:
+      glob: "apps/docs-frontend/**/*.{ts,tsx}"
+      run: pnpm --filter @docs-app/docs-frontend typecheck
+    typecheck-backend:
+      glob: "apps/docs-backend/**/*.ts"
+      run: pnpm --filter @docs-app/docs-backend typecheck
 
 commit-msg:
   commands:

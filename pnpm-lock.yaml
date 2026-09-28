@@ -4,9 +4,27 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@types/node':
+      specifier: ^20
+      version: 20.19.43
+    typescript:
+      specifier: ^5
+      version: 5.9.3
+
 importers:
 
   .:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 2.5.11
+        version: 2.5.11
+      lefthook:
+        specifier: ^2.1.12
+        version: 2.1.12
+
+  apps/docs-frontend:
     dependencies:
       '@base-ui/react':
         specifier: ^1.7.0
@@ -129,14 +147,11 @@ importers:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.2.18)(immer@11.1.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))
     devDependencies:
-      '@biomejs/biome':
-        specifier: 2.5.11
-        version: 2.5.11
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.3
       '@types/node':
-        specifier: ^20
+        specifier: 'catalog:'
         version: 20.19.43
       '@types/react':
         specifier: ^19
@@ -144,14 +159,11 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.2.4(@types/react@19.2.18)
-      lefthook:
-        specifier: ^2.1.12
-        version: 2.1.12
       tailwindcss:
         specifier: ^4
         version: 4.3.3
       typescript:
-        specifier: ^5
+        specifier: 'catalog:'
         version: 5.9.3
 
 packages:
