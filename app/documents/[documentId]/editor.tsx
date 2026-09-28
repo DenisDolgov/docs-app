@@ -1,5 +1,6 @@
 'use client';
 
+import { useLiveblocksExtension } from '@liveblocks/react-tiptap';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
@@ -17,6 +18,31 @@ import { useEditorStore } from '@/store/use-editor-store';
 // todo use tiptap hooks for state sharing
 export const Editor = () => {
   const { setEditor } = useEditorStore();
+  const liveblocks = useLiveblocksExtension({
+    initialContent:
+      '<table>\n' +
+      '          <tbody>\n' +
+      '            <tr>\n' +
+      '              <th><mark>Name</mark></th>\n' +
+      '              <th colspan="3">Description</th>\n' +
+      '            </tr>\n' +
+      '            <tr>\n' +
+      '              <td>Cyndi Lauper</td>\n' +
+      '              <td>Singer</td>\n' +
+      '              <td>Songwriter</td>\n' +
+      '              <td>Actress</td>\n' +
+      '            </tr>\n' +
+      '          </tbody>\n' +
+      '        </table>' +
+      '<img src="https://placehold.co/600x400" />\n' +
+      '        <img src="https://placehold.co/800x400" />' +
+      '<p>\n' +
+      '          Wow, this editor has support for links to the whole <a href="https://en.wikipedia.org/wiki/World_Wide_Web">world wide web</a>. We tested a lot of URLs and I think you can add *every URL* you want. Isn’t that cool? Let’s try <a href="https://statamic.com/">another one!</a> Yep, seems to work.\n' +
+      '        </p>\n' +
+      '        <p>\n' +
+      '          By default every link will get a <code>rel="noopener noreferrer nofollow"</code> attribute. It’s configurable though.\n' +
+      '        </p>',
+  });
 
   const editor = useEditor({
     onCreate({ editor }) {
@@ -51,17 +77,20 @@ export const Editor = () => {
       },
     },
     extensions: [
+      liveblocks,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        markdownLinks: true,
-        defaultProtocol: 'https',
-        protocols: ['https'],
+      StarterKit.configure({
+        undoRedo: false,
+        link: {
+          openOnClick: false,
+          autolink: true,
+          markdownLinks: true,
+          defaultProtocol: 'https',
+          protocols: ['https'],
+        },
       }),
-      StarterKit,
       TableKit.configure({
         table: { resizable: true },
       }),
@@ -75,33 +104,9 @@ export const Editor = () => {
           alwaysPreserveAspectRatio: true,
         },
       }),
-      Underline,
       TextStyleKit,
       Highlight.configure({ multicolor: true }),
     ],
-    content:
-      '<table>\n' +
-      '          <tbody>\n' +
-      '            <tr>\n' +
-      '              <th><mark>Name</mark></th>\n' +
-      '              <th colspan="3">Description</th>\n' +
-      '            </tr>\n' +
-      '            <tr>\n' +
-      '              <td>Cyndi Lauper</td>\n' +
-      '              <td>Singer</td>\n' +
-      '              <td>Songwriter</td>\n' +
-      '              <td>Actress</td>\n' +
-      '            </tr>\n' +
-      '          </tbody>\n' +
-      '        </table>' +
-      '<img src="https://placehold.co/600x400" />\n' +
-      '        <img src="https://placehold.co/800x400" />' +
-      '<p>\n' +
-      '          Wow, this editor has support for links to the whole <a href="https://en.wikipedia.org/wiki/World_Wide_Web">world wide web</a>. We tested a lot of URLs and I think you can add *every URL* you want. Isn’t that cool? Let’s try <a href="https://statamic.com/">another one!</a> Yep, seems to work.\n' +
-      '        </p>\n' +
-      '        <p>\n' +
-      '          By default every link will get a <code>rel="noopener noreferrer nofollow"</code> attribute. It’s configurable though.\n' +
-      '        </p>',
     // Don't render immediately on the server to avoid SSR issues
     immediatelyRender: false,
   });

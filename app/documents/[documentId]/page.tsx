@@ -1,6 +1,7 @@
-import { Editor } from '@/app/documents/[documentId]/editor';
-import { Navbar } from '@/app/documents/[documentId]/navbar';
-import { Toolbar } from '@/app/documents/[documentId]/toolbar';
+import { Editor } from './editor';
+import { Navbar } from './navbar';
+import { Room } from './room';
+import { Toolbar } from './toolbar';
 
 interface DocumentIdPageProps {
   params: Promise<{ documentId: string }>;
@@ -14,7 +15,9 @@ const DocumentIdPage = async ({ params }: DocumentIdPageProps) => {
     <>
       <Navbar />
       <Toolbar />
-      <Editor />
+      <Room>
+        <Editor />
+      </Room>
     </>
   );
 };
