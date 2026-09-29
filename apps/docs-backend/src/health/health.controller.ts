@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 
-import type { HealthService } from './health.service';
+// biome-ignore lint/style/useImportType: убрать правило для backend
+import { HealthService } from './health.service';
 
 @Controller()
 export class HealthController {
