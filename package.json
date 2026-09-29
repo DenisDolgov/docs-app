@@ -11,7 +11,10 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "typecheck": "pnpm -r typecheck",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down",
+    "infra:check": "node scripts/check-infra.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.11",
