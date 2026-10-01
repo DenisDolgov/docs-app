@@ -73,5 +73,22 @@
         }
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/docs-backend/**"],
+      "javascript": {
+        "parser": {
+          "unsafeParameterDecoratorsEnabled": true
+        }
+      },
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
+    }
+  ]
 }
