@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
 import { envSchema } from './config/env.schema';
+import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { createLoggerParams } from './logger/logger.config';
 
@@ -17,6 +18,7 @@ import { createLoggerParams } from './logger/logger.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => createLoggerParams(config),
     }),
+    DatabaseModule,
     HealthModule,
   ],
   controllers: [],

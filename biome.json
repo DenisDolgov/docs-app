@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/public", "!**/_generated"]
+    "includes": ["**", "!**/public", "!**/_generated", "!**/drizzle"]
   },
   "formatter": {
     "enabled": true,
