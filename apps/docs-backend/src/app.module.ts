@@ -6,6 +6,7 @@ import { envSchema } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { createLoggerParams } from './logger/logger.config';
+import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { RedisModule } from './redis/redis.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { RedisModule } from './redis/redis.module';
     }),
     DatabaseModule,
     RedisModule,
+    RabbitmqModule,
     HealthModule,
   ],
   controllers: [],

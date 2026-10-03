@@ -19,6 +19,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/drizzle": "^0.0.1",
     "@nestjs/platform-express": "^11.0.0",
+    "amqplib": "^2.2.0",
     "drizzle-orm": "1.0.0-rc.4",
     "ioredis": "^6.0.0",
     "nestjs-pino": "^5.2.1",
