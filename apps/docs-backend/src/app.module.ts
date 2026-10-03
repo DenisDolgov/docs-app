@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { createLoggerParams } from './logger/logger.config';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { RedisModule } from './redis/redis.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RedisModule } from './redis/redis.module';
     DatabaseModule,
     RedisModule,
     RabbitmqModule,
+    StorageModule,
     HealthModule,
   ],
   controllers: [],

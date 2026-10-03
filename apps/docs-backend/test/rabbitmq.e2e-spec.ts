@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module';
 import { RABBITMQ } from '../src/rabbitmq/rabbitmq.constants';
 import { RabbitmqService } from '../src/rabbitmq/rabbitmq.service';
+import { waitFor } from './utils';
 
 const EXCHANGE = 'documents';
 const ROUTING_KEY = 'document.created';
@@ -12,21 +13,6 @@ const QUEUE = 'documents.q';
 const DLX = 'documents.dlx';
 const DLQ = 'documents.dlq';
 const DEAD_KEY = 'dead';
-
-const waitFor = async (
-  predicate: () => boolean | Promise<boolean>,
-  timeoutMs = 3000,
-) => {
-  const started = Date.now();
-
-  while (Date.now() - started < timeoutMs) {
-    if (await predicate()) return;
-
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-
-  throw new Error('waitFor: условие не выполнено за отведённое время');
-};
 
 describe('rabbitmq', () => {
   let connection: ChannelModel;
