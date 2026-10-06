@@ -1,18 +1,15 @@
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 // todo линтер не видит esModuleInterop
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { AppModule } from '../src/app.module';
+import { createTestApp } from './utils';
 
 describe('GET /health', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const moduleRef = await createTestApp();
     app = moduleRef.createNestApplication();
     await app.init();
   });

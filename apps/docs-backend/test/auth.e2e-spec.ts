@@ -1,13 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { AppModule } from '../src/app.module';
 import { DATABASE, type Database } from '../src/database/database.constants';
+import { createTestApp } from './utils';
 
 const PASSWORD = 'correct horse battery staple';
 const nextEmail = () => `user-${randomUUID()}@example.com`;
@@ -18,9 +17,7 @@ describe('POST /auth/register', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const moduleRef = await createTestApp();
 
     app = moduleRef.createNestApplication();
     await app.init();
@@ -81,6 +78,38 @@ describe('POST /auth/register', () => {
     const second = await request(app.getHttpServer())
       .post('/auth/register')
       .send(body);
+
+    expect(second.status).toBe(409);
+  });
+
+  it('нормализует email при регистрации: хранит и возвращает в нижнем регистре', async () => {
+    const email = nextEmail();
+
+    const res = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: email.toUpperCase(), password: PASSWORD });
+
+    expect(res.status).toBe(201);
+    expect(res.body.email).toBe(email);
+
+    const result = await db.execute<{ email: string }>(
+      sql`select email from auth.users where email = ${email}`,
+    );
+
+    expect(result.rows[0]?.email).toBe(email);
+  });
+
+  it('отклоняет повторную регистрацию того же email в другом регистре', async () => {
+    const email = nextEmail();
+
+    const first = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email, password: PASSWORD });
+    expect(first.status).toBe(201);
+
+    const second = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: email.toUpperCase(), password: PASSWORD });
 
     expect(second.status).toBe(409);
   });

@@ -1,18 +1,15 @@
-import { Test } from '@nestjs/testing';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { AppModule } from '../src/app.module';
 import { DATABASE, type Database } from '../src/database/database.constants';
+import { createTestApp } from './utils';
 
 describe('database', () => {
   let db: Database;
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const moduleRef = await createTestApp();
 
     db = moduleRef.get(DATABASE);
     close = () => moduleRef.close();

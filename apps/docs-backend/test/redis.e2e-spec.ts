@@ -1,10 +1,9 @@
-import { Test } from '@nestjs/testing';
 import type { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { AppModule } from '../src/app.module';
 import { REDIS } from '../src/redis/redis.constants';
 import { RedisService } from '../src/redis/redis.service';
+import { createTestApp } from './utils';
 
 describe('Redis', () => {
   let redis: Redis;
@@ -12,9 +11,7 @@ describe('Redis', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const moduleRef = await createTestApp();
 
     redis = moduleRef.get(REDIS);
     cache = moduleRef.get(RedisService);

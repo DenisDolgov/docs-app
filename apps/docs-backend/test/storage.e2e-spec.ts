@@ -1,11 +1,9 @@
 import { HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { AppModule } from '../src/app.module';
 import { S3 } from '../src/storage/storage.constants';
 import { StorageService } from '../src/storage/storage.service';
-import { waitFor } from './utils';
+import { createTestApp, waitFor } from './utils';
 
 const BUCKET = 'documents';
 const KEY = 'hello.txt';
@@ -17,9 +15,7 @@ describe('storage', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const moduleRef = await createTestApp();
 
     client = moduleRef.get(S3);
     storage = moduleRef.get(StorageService);
