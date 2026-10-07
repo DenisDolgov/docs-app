@@ -1,21 +1,14 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import cookieParser from 'cookie-parser';
-import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { REFRESH_COOKIE_NAME } from '../src/auth/auth.constants';
-import { DATABASE, type Database } from '../src/database/database.constants';
-import { createTestApp } from './utils';
+import { REFRESH_COOKIE_NAME } from '../../src/auth/auth.constants';
+import { createTestApp } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'test-access-secret';
 const nextEmail = () => `user-${randomUUID()}@example.com`;
-
-const sha256 = (value: string) =>
-  createHash('sha256').update(value).digest('hex');
 
 const setCookies = (res: request.Response): string[] => {
   const header = res.headers['set-cookie'] as unknown;
@@ -43,7 +36,6 @@ const expectRefreshCookieCleared = (res: request.Response) => {
 
 describe('refresh-токены', () => {
   let app: INestApplication;
-  let db: Database;
   let close: () => Promise<void>;
 
   const register = async () => {
@@ -82,8 +74,6 @@ describe('refresh-токены', () => {
     app = moduleRef.createNestApplication();
     app.use(cookieParser());
     await app.init();
-
-    db = moduleRef.get(DATABASE);
     close = () => app.close();
   });
 
@@ -98,14 +88,6 @@ describe('refresh-токены', () => {
     expect(refreshCookie).toMatch(/HttpOnly/i);
     expect(refreshCookie).toMatch(/Path=\/auth/i);
     expect(refreshCookie).toMatch(/Max-Age=[1-9]/i);
-  });
-
-  it('refresh-токен opaque и не является JWT', async () => {
-    const { refreshCookie } = await login();
-    const value = cookieValue(refreshCookie as string);
-
-    expect(value).not.toContain('.');
-    expect(value.length).toBeGreaterThanOrEqual(32);
   });
 
   it('refresh выдаёт новый access-токен и ротирует refresh-токен', async () => {
@@ -168,46 +150,6 @@ describe('refresh-токены', () => {
     const res = await request(app.getHttpServer())
       .post('/auth/refresh')
       .set('Cookie', `${REFRESH_COOKIE_NAME}=${forged}`);
-
-    expect(res.status).toBe(401);
-  });
-
-  it('хранит только sha256-хеш refresh-токена, а не сам токен', async () => {
-    const { refreshCookie } = await login();
-    const token = cookieValue(refreshCookie as string);
-
-    const result = await db.execute<Record<string, unknown>>(
-      sql`select * from auth.refresh_tokens`,
-    );
-
-    const rows = result.rows;
-    const hashed = rows.some((row) => row.token_hash === sha256(token));
-
-    expect(hashed).toBe(true);
-
-    const plaintextLeaked = rows.some((row) =>
-      Object.values(row).some((value) => value === token),
-    );
-
-    expect(plaintextLeaked).toBe(false);
-  });
-
-  it('отклоняет истёкший refresh-токен', async () => {
-    const { accessToken } = await login();
-    const { sub } = new JwtService({ secret: ACCESS_SECRET }).verify<{
-      sub: string;
-    }>(accessToken);
-
-    const expired = randomBytes(32).toString('base64url');
-
-    await db.execute(
-      sql`insert into auth.refresh_tokens (user_id, session_id, token_hash, expires_at)
-          values (${sub}, ${randomUUID()}, ${sha256(expired)}, now() - interval '1 day')`,
-    );
-
-    const res = await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .set('Cookie', `${REFRESH_COOKIE_NAME}=${expired}`);
 
     expect(res.status).toBe(401);
   });

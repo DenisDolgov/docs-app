@@ -7,9 +7,10 @@
     "start": "nest start",
     "dev": "nest start --watch",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "test": "vitest run --config ./vitest.config.ts --project unit",
+    "test:watch": "vitest --config ./vitest.config.ts --project unit",
+    "test:integration": "vitest run --config ./vitest.config.ts --project integration",
+    "test:e2e": "vitest run --config ./vitest.config.ts --project e2e",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },

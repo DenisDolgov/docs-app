@@ -1,9 +1,9 @@
 import { HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { S3 } from '../src/storage/storage.constants';
-import { StorageService } from '../src/storage/storage.service';
-import { createTestApp, waitFor } from './utils';
+import { S3 } from '../../src/storage/storage.constants';
+import { StorageService } from '../../src/storage/storage.service';
+import { createTestApp, waitFor } from '../utils';
 
 const BUCKET = 'documents';
 const KEY = 'hello.txt';

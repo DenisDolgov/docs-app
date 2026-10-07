@@ -1,9 +1,9 @@
 import type { Channel, ChannelModel } from 'amqplib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { RABBITMQ } from '../src/rabbitmq/rabbitmq.constants';
-import { RabbitmqService } from '../src/rabbitmq/rabbitmq.service';
-import { createTestApp, waitFor } from './utils';
+import { RABBITMQ } from '../../src/rabbitmq/rabbitmq.constants';
+import { RabbitmqService } from '../../src/rabbitmq/rabbitmq.service';
+import { createTestApp, waitFor } from '../utils';
 
 const EXCHANGE = 'documents';
 const ROUTING_KEY = 'document.created';

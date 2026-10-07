@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { DATABASE, type Database } from '../src/database/database.constants';
-import { createTestApp } from './utils';
+import { DATABASE, type Database } from '../../src/database/database.constants';
+import { createTestApp } from '../utils';
 
 describe('database', () => {
   let db: Database;

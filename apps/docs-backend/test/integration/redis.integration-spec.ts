@@ -1,9 +1,9 @@
 import type { Redis } from 'ioredis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { REDIS } from '../src/redis/redis.constants';
-import { RedisService } from '../src/redis/redis.service';
-import { createTestApp } from './utils';
+import { REDIS } from '../../src/redis/redis.constants';
+import { RedisService } from '../../src/redis/redis.service';
+import { createTestApp } from '../utils';
 
 describe('Redis', () => {
   let redis: Redis;

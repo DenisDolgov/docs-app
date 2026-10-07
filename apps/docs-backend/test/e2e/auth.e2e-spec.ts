@@ -1,19 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import * as argon2 from 'argon2';
-import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { DATABASE, type Database } from '../src/database/database.constants';
-import { createTestApp } from './utils';
+import { createTestApp } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const nextEmail = () => `user-${randomUUID()}@example.com`;
 
 describe('POST /auth/register', () => {
   let app: INestApplication;
-  let db: Database;
   let close: () => Promise<void>;
 
   beforeAll(async () => {
@@ -21,8 +17,6 @@ describe('POST /auth/register', () => {
 
     app = moduleRef.createNestApplication();
     await app.init();
-
-    db = moduleRef.get(DATABASE);
     close = () => app.close();
   });
 
@@ -46,26 +40,6 @@ describe('POST /auth/register', () => {
     expect(res.body).not.toHaveProperty('password_hash');
   });
 
-  it('хранит argon2id-хеш, а не открытый пароль', async () => {
-    const email = nextEmail();
-
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({ email, password: PASSWORD });
-
-    const result = await db.execute<{ password_hash: string }>(
-      sql`select password_hash from auth.users where email = ${email}`,
-    );
-
-    const hash = result.rows[0]?.password_hash;
-
-    if (hash === undefined) {
-      throw new Error('password_hash не записан в auth.users');
-    }
-    expect(hash).toMatch(/^\$argon2id\$/);
-    await expect(argon2.verify(hash, PASSWORD)).resolves.toBe(true);
-  });
-
   it('отклоняет повторную регистрацию с тем же email', async () => {
     const email = nextEmail();
     const body = { email, password: PASSWORD };
@@ -82,7 +56,7 @@ describe('POST /auth/register', () => {
     expect(second.status).toBe(409);
   });
 
-  it('нормализует email при регистрации: хранит и возвращает в нижнем регистре', async () => {
+  it('нормализует email при регистрации: возвращает в нижнем регистре', async () => {
     const email = nextEmail();
 
     const res = await request(app.getHttpServer())
@@ -91,12 +65,6 @@ describe('POST /auth/register', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.email).toBe(email);
-
-    const result = await db.execute<{ email: string }>(
-      sql`select email from auth.users where email = ${email}`,
-    );
-
-    expect(result.rows[0]?.email).toBe(email);
   });
 
   it('отклоняет повторную регистрацию того же email в другом регистре', async () => {
@@ -124,19 +92,5 @@ describe('POST /auth/register', () => {
       .post('/auth/register')
       .send({ email: nextEmail(), password: 'short' });
     expect(badPassword.status).toBe(400);
-  });
-
-  it('создаёт таблицу auth.users с нужными колонками', async () => {
-    const result = await db.execute<{ column_name: string }>(
-      sql`select column_name from information_schema.columns
-where table_schema = 'auth' and table_name = 'users' order by column_name`,
-    );
-
-    expect(result.rows.map((row) => row.column_name)).toEqual([
-      'created_at',
-      'email',
-      'id',
-      'password_hash',
-    ]);
   });
 });

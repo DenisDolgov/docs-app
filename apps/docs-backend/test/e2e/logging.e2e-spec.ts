@@ -5,8 +5,8 @@ import { Logger, PARAMS_PROVIDER_TOKEN } from 'nestjs-pino';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { AppModule } from '../src/app.module';
-import { createLoggerParams } from '../src/logger/logger.config';
+import { AppModule } from '../../src/app.module';
+import { createLoggerParams } from '../../src/logger/logger.config';
 
 function getLogRecords(lines: string[]) {
   return lines

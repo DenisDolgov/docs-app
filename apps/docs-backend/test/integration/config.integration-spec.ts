@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const loadAppModule = async () => {
   vi.resetModules();
-  const { AppModule } = await import('../src/app.module');
+  const { AppModule } = await import('../../src/app.module');
   return AppModule;
 };
 

@@ -3,12 +3,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    name: 'e2e',
-    include: ['test/e2e/*.e2e-spec.ts'],
+    name: 'unit',
+    include: ['test/unit/**/*.spec.ts'],
     globals: true,
     root: './',
-    globalSetup: ['./test/global-setup.ts'],
-    setupFiles: ['./test/setup-e2e.ts'],
   },
   plugins: [swc.vite({ module: { type: 'es6' } })],
 });

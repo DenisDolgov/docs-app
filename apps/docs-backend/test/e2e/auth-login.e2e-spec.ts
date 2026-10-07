@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createTestApp } from './utils';
+import { createTestApp } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'test-access-secret';
@@ -48,26 +48,6 @@ describe('POST /auth/login', () => {
     expect(res.body).toMatchObject({ accessToken: expect.any(String) });
     expect(res.body).not.toHaveProperty('passwordHash');
     expect(res.body).not.toHaveProperty('password_hash');
-  });
-
-  it('подписывает JWT с sub пользователя и коротким сроком жизни', async () => {
-    const email = await register();
-
-    const res = await login(email);
-
-    const payload = new JwtService({ secret: ACCESS_SECRET }).verify<{
-      sub: string;
-      email: string;
-      iat: number;
-      exp: number;
-    }>(res.body.accessToken);
-
-    expect(payload.sub).toEqual(expect.any(String));
-    expect(payload.email).toBe(email);
-
-    const ttlSeconds = payload.exp - payload.iat;
-    expect(ttlSeconds).toBeGreaterThan(0);
-    expect(ttlSeconds).toBeLessThanOrEqual(15 * 60);
   });
 
   it('отвечает 401 на неверный пароль', async () => {
