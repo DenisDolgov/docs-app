@@ -6,6 +6,7 @@ import { DatabaseModule } from '../database/database.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RefreshTokenRepository } from './refresh-token.repository';
 import { UserRepository } from './user.repository';
 
 @Module({
@@ -21,7 +22,12 @@ import { UserRepository } from './user.repository';
       }),
     }),
   ],
-  providers: [UserRepository, JwtAuthGuard, AuthService],
+  providers: [
+    UserRepository,
+    RefreshTokenRepository,
+    JwtAuthGuard,
+    AuthService,
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}

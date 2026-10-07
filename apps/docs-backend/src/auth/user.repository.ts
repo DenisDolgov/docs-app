@@ -8,11 +8,9 @@ export class UserRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
   async findByEmail(email: string) {
-    const result = await this.db.query.users.findFirst({
+    return this.db.query.users.findFirst({
       where: { email },
     });
-
-    return result || null;
   }
 
   async create(data: typeof schema.users.$inferInsert) {
@@ -22,5 +20,11 @@ export class UserRepository {
       .returning({ id: schema.users.id, email: schema.users.email });
 
     return user;
+  }
+
+  async findById(id: string) {
+    return this.db.query.users.findFirst({
+      where: { id },
+    });
   }
 }
