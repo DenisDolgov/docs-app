@@ -28,6 +28,7 @@ import { UserRepository } from './user.repository';
     JwtAuthGuard,
     AuthService,
   ],
+  exports: [UserRepository, JwtAuthGuard, JwtModule],
   controllers: [AuthController],
 })
 export class AuthModule {}

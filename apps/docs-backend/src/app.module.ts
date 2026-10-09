@@ -9,6 +9,7 @@ import { envSchema } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { createLoggerParams } from './logger/logger.config';
+import { OrganizationModule } from './organization/organization.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { RedisModule } from './redis/redis.module';
 import { StorageModule } from './storage/storage.module';
@@ -30,6 +31,7 @@ import { StorageModule } from './storage/storage.module';
     StorageModule,
     HealthModule,
     AuthModule,
+    OrganizationModule,
   ],
   controllers: [],
   providers: [

@@ -10,6 +10,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 
+import { normalizeEmail } from '../common/utils/email';
 import { isUniqueViolation } from '../database/sql-errors';
 import { REFRESH_COOKIE_TTL } from './auth.constants';
 import { LoginDto } from './dto/login.dto';
@@ -39,7 +40,7 @@ export class AuthService implements OnModuleInit {
   }
 
   public async register({ email, password }: RegisterDto) {
-    const normalizedEmail = this.normalizeEmail(email);
+    const normalizedEmail = normalizeEmail(email);
     const existing = await this.userRepository.findByEmail(normalizedEmail);
 
     if (existing) {
@@ -64,7 +65,7 @@ export class AuthService implements OnModuleInit {
   }
 
   public async login({ email, password }: LoginDto) {
-    const normalizedEmail = this.normalizeEmail(email);
+    const normalizedEmail = normalizeEmail(email);
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
@@ -147,10 +148,6 @@ export class AuthService implements OnModuleInit {
     if (!tokenRecord) return;
 
     return this.refreshTokenRepository.revokeAllByUser(tokenRecord.userId);
-  }
-
-  private normalizeEmail(email: string) {
-    return email.trim().toLowerCase();
   }
 
   private async createSession(userId: string, currentSessionId?: string) {

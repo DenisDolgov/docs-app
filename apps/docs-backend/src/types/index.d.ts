@@ -1,4 +1,4 @@
-import { AuthenticatedRequest } from '../auth/types';
+import type { AuthenticatedRequest } from '../auth/auth.models';
 
 declare global {
   namespace Express {

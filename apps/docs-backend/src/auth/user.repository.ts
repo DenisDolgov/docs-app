@@ -7,13 +7,13 @@ import * as schema from '../database/schema';
 export class UserRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  async findByEmail(email: string) {
+  public async findByEmail(email: string) {
     return this.db.query.users.findFirst({
       where: { email },
     });
   }
 
-  async create(data: typeof schema.users.$inferInsert) {
+  public async create(data: typeof schema.users.$inferInsert) {
     const [user] = await this.db
       .insert(schema.users)
       .values(data)
@@ -22,9 +22,17 @@ export class UserRepository {
     return user;
   }
 
-  async findById(id: string) {
+  public async findById(id: string) {
     return this.db.query.users.findFirst({
       where: { id },
+    });
+  }
+
+  public async findByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+
+    return this.db.query.users.findMany({
+      where: { id: { in: ids } },
     });
   }
 }

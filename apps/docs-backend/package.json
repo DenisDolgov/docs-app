@@ -11,6 +11,7 @@
     "test:watch": "vitest --config ./vitest.config.ts --project unit",
     "test:integration": "vitest run --config ./vitest.config.ts --project integration",
     "test:e2e": "vitest run --config ./vitest.config.ts --project e2e",
+    "test:all": "vitest run --config ./vitest.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
