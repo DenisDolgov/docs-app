@@ -33,8 +33,11 @@ where table_schema = 'documents' and table_name = 'documents' order by column_na
 
     expect(result.rows.map((row) => row.column_name)).toEqual([
       'created_at',
+      'created_by',
       'id',
+      'organization_id',
       'title',
+      'updated_at',
     ]);
   });
 });

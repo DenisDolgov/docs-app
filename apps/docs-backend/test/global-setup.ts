@@ -38,7 +38,13 @@ export default async function setup() {
     );
   }
 
-  const testDatabase = `${url.pathname.slice(1)}_test`;
+  // globalSetup выполняется по одному разу на каждый проект (integration, e2e),
+  // но все проекты делят один процесс и один `process.env`. Первый прогон
+  // переписывает DATABASE_URL на тестовую БД, поэтому второй прогон не должен
+  // выводить имя из уже изменённого значения — иначе получится "..._test_test".
+  // Срезаем суффикс, чтобы функция была идемпотентной.
+  const baseDatabase = url.pathname.slice(1).replace(/_test$/, '');
+  const testDatabase = `${baseDatabase}_test`;
 
   const admin = new Client({ connectionString: withoutDb(url, 'postgres') });
   await admin.connect();

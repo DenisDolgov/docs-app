@@ -7,7 +7,13 @@ export const documents = documentsSchema.table(
   {
     id: uuid().primaryKey().default(sql`uuidv7()`),
     title: text().notNull(),
+    organizationId: uuid().notNull(),
+    createdBy: uuid().notNull(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('documents_created_at_idx').on(table.createdAt)],
+  (table) => [
+    index('documents_created_at_idx').on(table.createdAt),
+    index('documents_organization_id_idx').on(table.organizationId),
+  ],
 );

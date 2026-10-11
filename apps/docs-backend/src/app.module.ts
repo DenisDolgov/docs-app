@@ -7,6 +7,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from './auth/auth.module';
 import { envSchema } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
+import { DocumentModule } from './document/document.module';
 import { HealthModule } from './health/health.module';
 import { createLoggerParams } from './logger/logger.config';
 import { OrganizationModule } from './organization/organization.module';
@@ -32,6 +33,7 @@ import { StorageModule } from './storage/storage.module';
     HealthModule,
     AuthModule,
     OrganizationModule,
+    DocumentModule,
   ],
   controllers: [],
   providers: [

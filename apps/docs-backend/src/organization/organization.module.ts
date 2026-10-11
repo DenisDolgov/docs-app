@@ -15,5 +15,6 @@ import { OrganizationMemberRepository } from './organization-member.repository';
     OrganizationService,
   ],
   controllers: [OrganizationController],
+  exports: [OrganizationMemberRepository],
 })
 export class OrganizationModule {}
