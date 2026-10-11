@@ -13,8 +13,7 @@ import * as argon2 from 'argon2';
 import { normalizeEmail } from '../common/utils/email';
 import { isUniqueViolation } from '../database/sql-errors';
 import { REFRESH_COOKIE_TTL } from './auth.constants';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { LoginParams, RegisterParams } from './auth.models';
 import {
   INVALID_EMAIL_OR_PASSWORD_ERROR,
   UNAUTHORIZED_ERROR,
@@ -39,7 +38,7 @@ export class AuthService implements OnModuleInit {
     this.dummyHash = await argon2.hash('dummy');
   }
 
-  public async register({ email, password }: RegisterDto) {
+  public async register({ email, password }: RegisterParams) {
     const normalizedEmail = normalizeEmail(email);
     const existing = await this.userRepository.findByEmail(normalizedEmail);
 
@@ -64,7 +63,7 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  public async login({ email, password }: LoginDto) {
+  public async login({ email, password }: LoginParams) {
     const normalizedEmail = normalizeEmail(email);
     const user = await this.userRepository.findByEmail(normalizedEmail);
 

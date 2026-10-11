@@ -6,8 +6,8 @@ export interface DocumentView {
   organizationId: string;
   createdBy: string;
   title: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateDocumentParams extends ActorInOrganization {

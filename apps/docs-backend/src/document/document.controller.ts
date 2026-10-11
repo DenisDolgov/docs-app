@@ -8,15 +8,19 @@ import {
   Param,
   Patch,
   Post,
-  Req,
+  SerializeOptions,
   UseGuards,
 } from '@nestjs/common';
-import { type Request } from 'express';
+import { ApiOkResponse } from '@nestjs/swagger';
+import { z } from 'zod';
 
+import { AccessTokenPayload } from '../auth/auth.models';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentService } from './document.service';
-import { CreateDocumentDto } from './dto/create-document.dto';
-import { UpdateDocumentDto } from './dto/update-document.dto';
+import { createDocumentDto } from './dto/create-document.dto';
+import { documentResponseDto } from './dto/document-response.dto';
+import { updateDocumentDto } from './dto/update-document.dto';
 
 @Controller('organizations/:organizationId/documents')
 @UseGuards(JwtAuthGuard)
@@ -24,54 +28,64 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post()
+  @SerializeOptions({ schema: documentResponseDto })
+  @ApiOkResponse({ standardSchema: documentResponseDto })
   async create(
-    @Req() req: Request,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('organizationId') organizationId: string,
-    @Body() { title }: CreateDocumentDto,
+    @Body({ schema: createDocumentDto })
+    { title }: z.infer<typeof createDocumentDto>,
   ) {
     return this.documentService.create({
       title,
       organizationId,
-      actorId: req.user.sub,
+      actorId: user.sub,
     });
   }
 
   @Get()
+  @SerializeOptions({ schema: documentResponseDto })
+  @ApiOkResponse({ standardSchema: documentResponseDto, isArray: true })
   async getAll(
-    @Req() req: Request,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('organizationId') organizationId: string,
   ) {
     return this.documentService.list({
       organizationId,
-      actorId: req.user.sub,
+      actorId: user.sub,
     });
   }
 
   @Get('/:documentId')
+  @SerializeOptions({ schema: documentResponseDto })
+  @ApiOkResponse({ standardSchema: documentResponseDto })
   async get(
-    @Req() req: Request,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('organizationId') organizationId: string,
     @Param('documentId') documentId: string,
   ) {
     return this.documentService.get({
       documentId,
       organizationId,
-      actorId: req.user.sub,
+      actorId: user.sub,
     });
   }
 
   @Patch('/:documentId')
   @HttpCode(HttpStatus.OK)
+  @SerializeOptions({ schema: documentResponseDto })
+  @ApiOkResponse({ standardSchema: documentResponseDto })
   async update(
-    @Req() req: Request,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('organizationId') organizationId: string,
     @Param('documentId') documentId: string,
-    @Body() { title }: UpdateDocumentDto,
+    @Body({ schema: updateDocumentDto })
+    { title }: z.infer<typeof updateDocumentDto>,
   ) {
     return this.documentService.update({
       documentId,
       organizationId,
-      actorId: req.user.sub,
+      actorId: user.sub,
       title,
     });
   }
@@ -79,14 +93,14 @@ export class DocumentController {
   @Delete('/:documentId')
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(
-    @Req() req: Request,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('organizationId') organizationId: string,
     @Param('documentId') documentId: string,
   ) {
     return this.documentService.remove({
       documentId,
       organizationId,
-      actorId: req.user.sub,
+      actorId: user.sub,
     });
   }
 }

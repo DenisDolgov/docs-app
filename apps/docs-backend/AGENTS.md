@@ -10,7 +10,8 @@
 | Что это | Где | Содержит | Пример |
 | --- | --- | --- | --- |
 | Схема БД | `database/schema/<entity>.ts` | таблицы Drizzle, `pgEnum`, выведенные union-типы | `organizations`, `organizationRoleEnum`, `OrganizationRole` |
-| Вход HTTP | `<module>/dto/<name>.dto.ts` | zod-схема + класс `createZodDto` | `AddMemberDto` |
+| Вход HTTP | `<module>/dto/<name>.dto.ts` | zod-схема (`z.object`) | `addMemberDto` |
+| Выход HTTP | `<module>/dto/<name>-response.dto.ts` | zod-схема разрешённой формы ответа | `documentResponseDto` |
 | Домен / приложение | `<module>/<module>.models.ts` | команды, read-модели, порты, транспортные типы модуля | `AddMemberParams`, `OrganizationMemberListItem` |
 | Значения и токены | `<module>/<module>.constants.ts` | `Symbol`-токены DI, TTL, наборы допустимых значений | `DATABASE`, `assignableOrganizationRoles` |
 | Тексты ошибок | `<module>/errors.ts` | строковые константы сообщений | `USER_NOT_FOUND_ERROR` |
@@ -47,10 +48,10 @@
    - выход/чтение — `<Сущность>ListItem` / `<Сущность>View`;
    - сквозной контекст — существительное (`ActorInOrganization`).
 
-4. **DTO не пересекает границу слоя.** DTO (zod + класс) живёт только в
-   контроллере. Сервис и репозитории принимают типы из `.models.ts`, а не класс
-   DTO. Если поля совпадают — это нормально: домен не должен зависеть от формы
-   HTTP-запроса.
+4. **DTO не пересекает границу слоя.** DTO (zod-схема) живёт только в
+   контроллере. Сервис и репозитории принимают типы из `.models.ts`, а не
+   схему DTO. Если поля совпадают — это нормально: домен не должен зависеть от
+   формы HTTP-запроса.
 
 5. **`.constants.ts` — это значения, а не типы.** Если константе нужен тип —
    импортируй его из `database/schema`, не объявляй новый здесь.
@@ -61,7 +62,32 @@
 
 7. **Тип из БД наружу не течёт.** Наружу отдаём явную форму (`returning({...})`,
    ручной маппинг), чтобы случайные колонки (например `passwordHash`) не
-   уходили в JSON. См. `docs/backend-tech-debt.md` → «Сериализация ответов».
+   уходили в JSON. Даты — тоже: репозиторий отдаёт ISO-строки
+   (`row.createdAt.toISOString()`), а не `Date` из драйвера. См.
+   `docs/backend-tech-debt.md` → «Сериализация ответов».
+
+8. **Вход валидирует схема на параметре, а не пайп.** Контроллер навешивает
+   zod-схему прямо на параметр: `@Body({ schema: registerDto })`. Глобальный
+   `StandardSchemaValidationPipe` (Nest 12) валидирует по этой метадане, а
+   `@nestjs/swagger` берёт её же в OpenAPI — одно описание на вход и доку.
+
+9. **Ответ описывает response-DTO, а не форма из репозитория.** Форма ответа —
+   отдельная zod-схема в `<module>/dto/<name>-response.dto.ts`. Рантайм-гарантию
+   дают `@SerializeOptions({ schema })` на хендлере и глобальный
+   `StandardSchemaSerializerInterceptor`: результат хендлера прогоняется через
+   схему, лишнее отсекается. Документацию ответа даёт `@ApiOkResponse({
+   standardSchema })` (для списка — `{ standardSchema, isArray: true }`).
+   См. урок 0017 и `reference/typed-http-contract-cheatsheet.html`.
+
+10. **Даты в response-DTO — ISO-строки.** В схеме — `z.iso.datetime()`;
+   `Date` из Drizzle конвертирует репозиторий. `z.date()`/`z.coerce.date()` в
+   response-схему не ставим: они не представимы в JSON Schema и ломают генерацию
+   OpenAPI. (Со Standard Schema кодек не работает: сериализатор вызывает
+   `validate`, а не `encode`.)
+
+11. **Текущий пользователь — `@CurrentUser()`.** Контроллер не тащит `@Req()` и
+    не лезет в `req.user`; payload из гуарда достаёт параметрический декоратор
+    `src/auth/current-user.decorator.ts`.
 
 ## Схема БД
 

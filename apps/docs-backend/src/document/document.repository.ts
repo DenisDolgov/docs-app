@@ -3,49 +3,60 @@ import { eq, sql } from 'drizzle-orm';
 
 import { DATABASE, Database } from '../database/database.constants';
 import * as schema from '../database/schema';
-import { UpdateDocumentParams } from './document.models';
+import { DocumentView } from './document.models';
+
+type DocumentRow = typeof schema.documents.$inferSelect;
+
+const toDocumentView = (row: DocumentRow): DocumentView => ({
+  id: row.id,
+  organizationId: row.organizationId,
+  createdBy: row.createdBy,
+  title: row.title,
+  createdAt: row.createdAt.toISOString(),
+  updatedAt: row.updatedAt.toISOString(),
+});
 
 @Injectable()
 export class DocumentRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  // todo или лучше явно типизировать interface data??
-  // todo стоит ли типизировать возвращаемое значение явно DocumentView?
-  public async create(data: typeof schema.documents.$inferInsert) {
+  public async create(
+    data: typeof schema.documents.$inferInsert,
+  ): Promise<DocumentView> {
     const [document] = await this.db
       .insert(schema.documents)
       .values(data)
-      .returning({
-        id: schema.documents.id,
-        organizationId: schema.documents.organizationId,
-        createdBy: schema.documents.createdBy,
-        title: schema.documents.title,
-        createdAt: schema.documents.createdAt,
-        updatedAt: schema.documents.updatedAt,
-      });
+      .returning();
 
-    return document;
+    return toDocumentView(document);
   }
 
-  public async listByOrganization(organizationId: string) {
-    return this.db.query.documents.findMany({
+  public async listByOrganization(
+    organizationId: string,
+  ): Promise<DocumentView[]> {
+    const documents = await this.db.query.documents.findMany({
       where: { organizationId },
       orderBy: { updatedAt: 'desc' },
     });
+
+    return documents.map(toDocumentView);
   }
 
   public async findByIdInOrganization(
     documentId: string,
     organizationId: string,
-  ) {
-    return (
-      (await this.db.query.documents.findFirst({
-        where: { id: documentId, organizationId },
-      })) ?? null
-    );
+  ): Promise<DocumentView | null> {
+    const document = await this.db.query.documents.findFirst({
+      where: { id: documentId, organizationId },
+    });
+
+    return document ? toDocumentView(document) : null;
   }
 
-  public async update(documentId: string, title: string) {
+  public async update(
+    documentId: string,
+    title: string,
+  ): Promise<DocumentView> {
     const [document] = await this.db
       .update(schema.documents)
       .set({
@@ -53,16 +64,9 @@ export class DocumentRepository {
         updatedAt: sql`NOW()`,
       })
       .where(eq(schema.documents.id, documentId))
-      .returning({
-        id: schema.documents.id,
-        organizationId: schema.documents.organizationId,
-        createdBy: schema.documents.createdBy,
-        title: schema.documents.title,
-        createdAt: schema.documents.createdAt,
-        updatedAt: schema.documents.updatedAt,
-      });
+      .returning();
 
-    return document;
+    return toDocumentView(document);
   }
 
   public async remove(documentId: string) {

@@ -1,17 +1,11 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-import { type Request } from 'express';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { z } from 'zod';
 
+import { AccessTokenPayload } from '../auth/auth.models';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AddMemberDto } from './dto/add-member.dto';
-import { CreateOrganizationDto } from './dto/create-organization.dto';
+import { addMemberDto } from './dto/add-member.dto';
+import { createOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationService } from './organization.service';
 
 @Controller('organizations')
@@ -20,27 +14,34 @@ export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Post()
-  async create(@Req() req: Request, @Body() { name }: CreateOrganizationDto) {
+  async create(
+    @CurrentUser() user: AccessTokenPayload,
+    @Body({ schema: createOrganizationDto })
+    { name }: z.infer<typeof createOrganizationDto>,
+  ) {
     return this.organizationService.create({
-      userId: req.user.sub,
+      userId: user.sub,
       name,
     });
   }
 
   @Get()
-  async getAll(@Req() req: Request) {
-    return this.organizationService.listForUser(req.user.sub);
+  async getAll(@CurrentUser() user: AccessTokenPayload) {
+    return this.organizationService.listForUser(user.sub);
   }
 
   @Post('/:organizationId/members')
   async addMember(
-    @Req() req: Request,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('organizationId') organizationId: string,
-    @Body() { email, role }: AddMemberDto,
+    @Body({ schema: addMemberDto }) {
+      email,
+      role,
+    }: z.infer<typeof addMemberDto>,
   ) {
     return this.organizationService.addMember({
       organizationId,
-      actorId: req.user.sub,
+      actorId: user.sub,
       email,
       role,
     });
@@ -48,12 +49,12 @@ export class OrganizationController {
 
   @Get('/:organizationId/members')
   getMembers(
-    @Req() req: Request,
+    @CurrentUser() user: AccessTokenPayload,
     @Param('organizationId') organizationId: string,
   ) {
     return this.organizationService.listMembers({
       organizationId,
-      actorId: req.user.sub,
+      actorId: user.sub,
     });
   }
 }

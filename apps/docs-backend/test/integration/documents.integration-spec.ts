@@ -161,9 +161,7 @@ where tc.table_schema = 'documents' and tc.table_name = 'documents'
     });
 
     expect(updated.title).toBe('Новое');
-    expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(
-      document.updatedAt.getTime(),
-    );
+    expect(updated.updatedAt >= document.updatedAt).toBe(true);
   });
 
   it('удаляет документ', async () => {

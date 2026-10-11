@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { type Request } from 'express';
 
+import { AccessTokenPayload } from './auth.models';
 import { UNAUTHORIZED_ERROR } from './errors';
 
 @Injectable()
@@ -22,10 +23,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      req.user = await this.jwtService.verifyAsync<{
-        sub: string;
-        email: string;
-      }>(token);
+      req.user = await this.jwtService.verifyAsync<AccessTokenPayload>(token);
     } catch {
       throw new UnauthorizedException(UNAUTHORIZED_ERROR);
     }

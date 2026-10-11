@@ -1,8 +1,11 @@
-import { Module } from '@nestjs/common';
+import {
+  Module,
+  StandardSchemaSerializerInterceptor,
+  StandardSchemaValidationPipe,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
-import { ZodValidationPipe } from 'nestjs-zod';
 
 import { AuthModule } from './auth/auth.module';
 import { envSchema } from './config/env.schema';
@@ -39,7 +42,11 @@ import { StorageModule } from './storage/storage.module';
   providers: [
     {
       provide: APP_PIPE,
-      useClass: ZodValidationPipe,
+      useClass: StandardSchemaValidationPipe,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: StandardSchemaSerializerInterceptor,
     },
   ],
 })

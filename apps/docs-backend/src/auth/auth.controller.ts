@@ -7,15 +7,21 @@ import {
   Post,
   Req,
   Res,
+  SerializeOptions,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOkResponse } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
+import { z } from 'zod';
 
 import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_TTL } from './auth.constants';
+import { AccessTokenPayload } from './auth.models';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import { CurrentUser } from './current-user.decorator';
+import { loginDto } from './dto/login.dto';
+import { registerDto } from './dto/register.dto';
+import { userResponseDto } from './dto/user-response.dto';
 import { UNAUTHORIZED_ERROR } from './errors';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -24,14 +30,14 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  register(@Body() body: RegisterDto) {
+  register(@Body({ schema: registerDto }) body: z.infer<typeof registerDto>) {
     return this.authService.register(body);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
-    @Body() body: LoginDto,
+    @Body({ schema: loginDto }) body: z.infer<typeof loginDto>,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken, refreshToken } = await this.authService.login(body);
@@ -94,10 +100,12 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  me(@Req() req: Request) {
+  @SerializeOptions({ schema: userResponseDto })
+  @ApiOkResponse({ standardSchema: userResponseDto })
+  me(@CurrentUser() user: AccessTokenPayload) {
     return {
-      email: req.user.email,
-      id: req.user.sub,
+      email: user.email,
+      id: user.sub,
     };
   }
 
