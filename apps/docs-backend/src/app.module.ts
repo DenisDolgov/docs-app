@@ -8,6 +8,7 @@ import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module';
+import { CollabModule } from './collab/collab.module';
 import { envSchema } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { DocumentModule } from './document/document.module';
@@ -37,6 +38,7 @@ import { StorageModule } from './storage/storage.module';
     AuthModule,
     OrganizationModule,
     DocumentModule,
+    CollabModule,
   ],
   controllers: [],
   providers: [
