@@ -9,8 +9,7 @@ describe('GET /health', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-    app = moduleRef.createNestApplication();
+    app = await createTestApp();
     await app.init();
   });
 

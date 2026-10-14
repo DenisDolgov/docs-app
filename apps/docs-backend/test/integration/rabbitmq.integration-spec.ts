@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { RABBITMQ } from '../../src/rabbitmq/rabbitmq.constants';
 import { RabbitmqService } from '../../src/rabbitmq/rabbitmq.service';
-import { createTestApp, waitFor } from '../utils';
+import { createTestingModule, waitFor } from '../utils';
 
 const EXCHANGE = 'documents';
 const ROUTING_KEY = 'document.created';
@@ -19,7 +19,7 @@ describe('rabbitmq', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
+    const moduleRef = await createTestingModule();
 
     connection = moduleRef.get(RABBITMQ);
     events = moduleRef.get(RabbitmqService);

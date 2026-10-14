@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
+import { setupOpenApi } from './openapi/setup-openapi';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,6 +13,7 @@ async function bootstrap() {
   app.use(cookieParser());
   app.useWebSocketAdapter(new WsAdapter(app));
   app.enableShutdownHooks();
+  setupOpenApi(app);
   const configService = app.get(ConfigService);
   await app.listen(configService.get<number>('PORT', 3001));
 }

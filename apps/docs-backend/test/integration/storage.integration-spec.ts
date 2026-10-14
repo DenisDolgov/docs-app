@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { S3 } from '../../src/storage/storage.constants';
 import { StorageService } from '../../src/storage/storage.service';
-import { createTestApp, waitFor } from '../utils';
+import { createTestingModule, waitFor } from '../utils';
 
 const BUCKET = 'documents';
 const KEY = 'hello.txt';
@@ -15,7 +15,7 @@ describe('storage', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
+    const moduleRef = await createTestingModule();
 
     client = moduleRef.get(S3);
     storage = moduleRef.get(StorageService);

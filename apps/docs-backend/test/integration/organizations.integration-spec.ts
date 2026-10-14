@@ -7,7 +7,7 @@ import { AuthService } from '../../src/auth/auth.service';
 import { DATABASE, type Database } from '../../src/database/database.constants';
 import { OrganizationService } from '../../src/organization/organization.service';
 import { OrganizationMemberRepository } from '../../src/organization/organization-member.repository';
-import { createTestApp } from '../utils';
+import { createTestingModule } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const nextEmail = () => `user-${randomUUID()}@example.com`;
@@ -27,7 +27,7 @@ describe('organizations (integration)', () => {
   };
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
+    const moduleRef = await createTestingModule();
 
     auth = moduleRef.get(AuthService);
     organizationService = moduleRef.get(OrganizationService);

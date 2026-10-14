@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { REDIS } from '../../src/redis/redis.constants';
 import { RedisService } from '../../src/redis/redis.service';
-import { createTestApp } from '../utils';
+import { createTestingModule } from '../utils';
 
 describe('Redis', () => {
   let redis: Redis;
@@ -11,7 +11,7 @@ describe('Redis', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
+    const moduleRef = await createTestingModule();
 
     redis = moduleRef.get(REDIS);
     cache = moduleRef.get(RedisService);

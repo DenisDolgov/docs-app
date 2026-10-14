@@ -43,9 +43,7 @@ describe('organizations (e2e)', () => {
       .send(body);
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-
-    app = moduleRef.createNestApplication();
+    app = await createTestApp();
     await app.init();
     close = () => app.close();
   });

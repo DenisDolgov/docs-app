@@ -28,9 +28,7 @@ describe('POST /auth/login', () => {
     request(app.getHttpServer()).post('/auth/login').send({ email, password });
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-
-    app = moduleRef.createNestApplication();
+    app = await createTestApp();
     await app.init();
     close = () => app.close();
   });
@@ -101,9 +99,7 @@ describe('GET /auth/me', () => {
   };
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-
-    app = moduleRef.createNestApplication();
+    app = await createTestApp();
     await app.init();
     close = () => app.close();
   });

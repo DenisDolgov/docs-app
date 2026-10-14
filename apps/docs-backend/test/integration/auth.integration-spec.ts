@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AuthService } from '../../src/auth/auth.service';
 import { hashRefreshToken } from '../../src/auth/refresh-token';
 import { DATABASE, type Database } from '../../src/database/database.constants';
-import { createTestApp } from '../utils';
+import { createTestingModule } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'test-access-secret';
@@ -27,7 +27,7 @@ describe('auth (integration)', () => {
   };
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
+    const moduleRef = await createTestingModule();
 
     auth = moduleRef.get(AuthService);
     db = moduleRef.get(DATABASE);

@@ -1,4 +1,7 @@
+import type { INestApplication, NestApplicationOptions } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
+import cookieParser from 'cookie-parser';
 
 import { AppModule } from '../src/app.module';
 
@@ -17,8 +20,27 @@ export const waitFor = async (
   throw new Error('waitFor: условие не выполнено за отведённое время');
 };
 
-export const createTestApp = () => {
+export const createTestingModule = () => {
   return Test.createTestingModule({
     imports: [AppModule],
   }).compile();
+};
+
+// Повторяем конфигурацию приложения из `main.ts` (cookie parser + WsAdapter).
+// Без адаптера Nest при `init()` пытается поднять драйвер WebSocket по умолчанию
+// (`@nestjs/platform-socket.io`, не установлен) и вызывает `process.exit(1)`,
+// обрушивая тестовый воркер.
+export const configureTestApp = <T extends INestApplication>(app: T): T => {
+  app.useWebSocketAdapter(new WsAdapter(app));
+  app.use(cookieParser());
+
+  return app;
+};
+
+export const createTestApp = async (
+  options?: NestApplicationOptions,
+): Promise<INestApplication> => {
+  const moduleRef = await createTestingModule();
+
+  return configureTestApp(moduleRef.createNestApplication(options));
 };

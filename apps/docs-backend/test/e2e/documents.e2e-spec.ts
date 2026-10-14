@@ -54,9 +54,7 @@ describe('documents (e2e)', () => {
       .send({ email, role });
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-
-    app = moduleRef.createNestApplication();
+    app = await createTestApp();
     await app.init();
     close = () => app.close();
   });

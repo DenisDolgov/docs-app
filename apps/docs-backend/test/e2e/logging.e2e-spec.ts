@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { AppModule } from '../../src/app.module';
 import { createLoggerParams } from '../../src/logger/logger.config';
+import { configureTestApp } from '../utils';
 
 function getLogRecords(lines: string[]) {
   return lines
@@ -32,7 +33,9 @@ describe('request logging', () => {
       .useValue(createLoggerParams({ get: () => 'test' }, stream))
       .compile();
 
-    app = moduleRef.createNestApplication({ bufferLogs: true });
+    app = configureTestApp(
+      moduleRef.createNestApplication({ bufferLogs: true }),
+    );
     app.useLogger(app.get(Logger));
     await app.init();
   });

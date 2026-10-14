@@ -1,6 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -69,10 +68,7 @@ describe('refresh-токены', () => {
     request(app.getHttpServer()).post('/auth/logout').set('Cookie', cookie);
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-
-    app = moduleRef.createNestApplication();
-    app.use(cookieParser());
+    app = await createTestApp();
     await app.init();
     close = () => app.close();
   });

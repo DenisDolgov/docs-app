@@ -6,7 +6,7 @@ import * as Y from 'yjs';
 import { CollabRepository } from '../../src/collab/collab.repository';
 import { CollabService } from '../../src/collab/collab.service';
 import { DATABASE, type Database } from '../../src/database/database.constants';
-import { createTestApp, waitFor } from '../utils';
+import { createTestingModule, waitFor } from '../utils';
 
 const nextDocumentId = () => randomUUID();
 
@@ -17,7 +17,7 @@ describe('collab persistence (integration)', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
+    const moduleRef = await createTestingModule();
 
     repository = moduleRef.get(CollabRepository);
     service = moduleRef.get(CollabService);

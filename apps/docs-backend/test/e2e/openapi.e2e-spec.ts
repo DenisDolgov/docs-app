@@ -14,11 +14,9 @@ describe('openapi (e2e)', () => {
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-
-    app = moduleRef.createNestApplication();
-    await app.init();
+    app = await createTestApp();
     setupOpenApi(app);
+    await app.init();
     close = () => app.close();
   });
 

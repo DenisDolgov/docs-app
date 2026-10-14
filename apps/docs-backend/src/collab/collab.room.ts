@@ -122,6 +122,8 @@ export class CollabRoom {
 
     if (!boundary) return;
 
+    // todo где гарантия что между записью апдейтов в базу (flush) и созданием снэпшота (encodeStateAsUpdate) в документе
+    // не появятся новые обновления??
     const snapshot = Y.encodeStateAsUpdate(this.doc);
 
     await this.repository.compact(this.documentId, snapshot, boundary.id);

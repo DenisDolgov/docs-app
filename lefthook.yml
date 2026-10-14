@@ -15,3 +15,10 @@ commit-msg:
   commands:
     lint-msg:
       run: node scripts/lint-commit.js {1}
+
+pre-push:
+  commands:
+    infra:
+      run: pnpm infra:check
+    backend-tests:
+      run: pnpm --filter @docs-app/docs-backend test:all

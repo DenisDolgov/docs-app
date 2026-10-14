@@ -4,7 +4,7 @@ import * as Y from 'yjs';
 
 import { CollabRepository } from '../../src/collab/collab.repository';
 import { CollabService } from '../../src/collab/collab.service';
-import { createTestApp, waitFor } from '../utils';
+import { createTestingModule, waitFor } from '../utils';
 
 describe('collab recovery (integration)', () => {
   const modules: Array<{ close: () => Promise<void> }> = [];
@@ -15,10 +15,10 @@ describe('collab recovery (integration)', () => {
 
   it('восстанавливает комнату после нового запуска из снапшота и хвоста апдейтов', async () => {
     const documentId = randomUUID();
-    const firstApp = await createTestApp();
-    modules.push(firstApp);
-    const firstService = firstApp.get(CollabService);
-    const repository = firstApp.get(CollabRepository);
+    const firstModule = await createTestingModule();
+    modules.push(firstModule);
+    const firstService = firstModule.get(CollabService);
+    const repository = firstModule.get(CollabRepository);
 
     const firstRoom = await firstService.getRoom(documentId);
     firstRoom.doc.getText('content').insert(0, 'Hello');
@@ -34,12 +34,14 @@ describe('collab recovery (integration)', () => {
     await waitFor(
       async () => (await repository.listUpdates(documentId)).length > 0,
     );
-    await firstApp.close();
+    await firstModule.close();
     modules.pop();
 
-    const secondApp = await createTestApp();
-    modules.push(secondApp);
-    const secondRoom = await secondApp.get(CollabService).getRoom(documentId);
+    const secondModule = await createTestingModule();
+    modules.push(secondModule);
+    const secondRoom = await secondModule
+      .get(CollabService)
+      .getRoom(documentId);
 
     expect(secondRoom).not.toBe(firstRoom);
     expect(secondRoom.doc.getText('content').toString()).toBe('Hello World');

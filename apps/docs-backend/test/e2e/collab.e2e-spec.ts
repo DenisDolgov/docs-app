@@ -1,5 +1,5 @@
+import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
-import { WsAdapter } from '@nestjs/platform-ws';
 import * as decoding from 'lib0/decoding';
 import * as encoding from 'lib0/encoding';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -11,6 +11,7 @@ import { COLLAB_MESSAGE_SYNC } from '../../src/collab/collab.constants';
 import { createTestApp } from '../utils';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const nextDocumentId = () => randomUUID();
 
 describe('collab gateway (e2e)', () => {
   let app: INestApplication;
@@ -49,9 +50,7 @@ describe('collab gateway (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleRef = await createTestApp();
-    app = moduleRef.createNestApplication();
-    app.useWebSocketAdapter(new WsAdapter(app));
+    app = await createTestApp();
     await app.listen(0);
     port = (app.getHttpServer().address() as { port: number }).port;
   });
@@ -62,7 +61,7 @@ describe('collab gateway (e2e)', () => {
   });
 
   it('два клиента в одной комнате сходятся к одному тексту', async () => {
-    const documentId = `doc-${Math.random().toString(36).slice(2)}`;
+    const documentId = nextDocumentId();
     const a = await connect(documentId);
     const b = await connect(documentId);
 
@@ -77,8 +76,8 @@ describe('collab gateway (e2e)', () => {
   });
 
   it('комнаты изолированы по documentId', async () => {
-    const a = await connect(`doc-${Math.random().toString(36).slice(2)}`);
-    const b = await connect(`doc-${Math.random().toString(36).slice(2)}`);
+    const a = await connect(nextDocumentId());
+    const b = await connect(nextDocumentId());
 
     a.getText('content').insert(0, 'private');
     await wait(300);
