@@ -1,9 +1,11 @@
 import { defineRelations } from 'drizzle-orm';
 
+import { documentSnapshots, documentUpdates } from './collab';
 import { documents } from './documents';
 import { organizationMembers, organizations } from './organizations';
 import { refreshTokens, users } from './users';
 
+export { collabSchema, documentSnapshots, documentUpdates } from './collab';
 export { documents, documentsSchema } from './documents';
 export {
   organizationMembers,
@@ -20,6 +22,8 @@ export const relations = defineRelations(
     refreshTokens,
     organizations,
     organizationMembers,
+    documentUpdates,
+    documentSnapshots,
   },
   (r) => ({
     organizationMembers: {

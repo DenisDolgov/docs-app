@@ -13,26 +13,36 @@ import { CollabService } from './collab.service';
 export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private readonly collabService: CollabService) {}
 
-  handleConnection(client: CollabConnection, request: { url?: string }) {
-    const url = new URL(request.url ?? '/', 'http://localhost');
-    const documentId = url.searchParams.get('documentId') ?? '';
-    client.documentId = documentId;
+  async handleConnection(
+    client: CollabConnection,
+    request: { url?: string },
+  ): Promise<void> {
+    try {
+      const url = new URL(request.url ?? '/', 'http://localhost');
+      const documentId = url.searchParams.get('documentId');
 
-    const room = this.collabService.getRoom(documentId);
-    room.connections.add(client);
+      if (!documentId) {
+        client.close(4000, 'Document ID is required');
+        return;
+      }
 
-    client.on('message', (data: Buffer) => {
-      const bytes = new Uint8Array(data);
-      const reply = applySyncMessage(room.doc, bytes, client);
+      client.documentId = documentId;
+      const room = await this.collabService.attach(client);
 
-      if (reply) client.send(reply);
-    });
+      client.on('message', (data: Buffer) => {
+        const bytes = new Uint8Array(data);
+        const reply = applySyncMessage(room.doc, bytes, client);
 
-    client.send(encodeSyncStep1(room.doc));
+        if (reply) client.send(reply);
+      });
+
+      client.send(encodeSyncStep1(room.doc));
+    } catch {
+      client.close(1011, 'Connection setup failed');
+    }
   }
 
-  handleDisconnect(client: CollabConnection) {
-    const room = this.collabService.getRoom(client.documentId ?? '');
-    room.connections.delete(client);
+  async handleDisconnect(client: CollabConnection) {
+    await this.collabService.detach(client);
   }
 }
