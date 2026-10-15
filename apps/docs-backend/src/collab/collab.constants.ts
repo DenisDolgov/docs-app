@@ -1,4 +1,6 @@
 export const COLLAB_MESSAGE_SYNC = 0;
+export const COLLAB_MESSAGE_AWARENESS = 1;
+
 export const COLLAB_WS_PATH = '/ws';
 // Интервал сохранения снэпшота документа
 export const COLLAB_SAVE_INTERVAL = 5 * 60 * 1000;

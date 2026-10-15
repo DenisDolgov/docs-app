@@ -11,5 +11,6 @@ import { DocumentService } from './document.service';
   imports: [DatabaseModule, AuthModule, OrganizationModule],
   providers: [DocumentRepository, DocumentService],
   controllers: [DocumentController],
+  exports: [DocumentRepository],
 })
 export class DocumentModule {}

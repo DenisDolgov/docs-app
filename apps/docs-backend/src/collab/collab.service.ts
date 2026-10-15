@@ -49,9 +49,11 @@ export class CollabService implements OnModuleDestroy {
     return room;
   }
 
+  // связать новое соединение с комнатой
   async attach(connection: CollabConnection): Promise<CollabRoom> {
     const room = await this.getRoom(connection.documentId);
     room.attach(connection);
+    // отменяем запланированную очистку комнаты
     this.cancelEviction(connection.documentId);
     return room;
   }
@@ -97,6 +99,7 @@ export class CollabService implements OnModuleDestroy {
     this.evictTimers.set(documentId, timer);
   }
 
+  // отменить запланированную очистку комнаты
   private cancelEviction(documentId: string): void {
     const timer = this.evictTimers.get(documentId);
     if (!timer) return;
@@ -110,10 +113,15 @@ export class CollabService implements OnModuleDestroy {
     this.evictTimers.delete(documentId);
     const room = this.rooms.get(documentId);
 
+    // если к комнате еще привязаны соединения - не очищаем
     if (!room?.isEmpty) return;
 
+    // удаляем комнату из реестра
     this.rooms.delete(documentId);
+    // отменяем компактацию
     this.stopCompact(documentId);
+
+    // закрываем комнату
     await room
       .dispose()
       .catch((error) =>

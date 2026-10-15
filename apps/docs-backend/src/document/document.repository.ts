@@ -53,6 +53,14 @@ export class DocumentRepository {
     return document ? toDocumentView(document) : null;
   }
 
+  public async findById(documentId: string): Promise<DocumentView | null> {
+    const document = await this.db.query.documents.findFirst({
+      where: { id: documentId },
+    });
+
+    return document ? toDocumentView(document) : null;
+  }
+
   public async update(
     documentId: string,
     title: string,
