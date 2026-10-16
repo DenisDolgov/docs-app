@@ -1,6 +1,5 @@
 'use client';
 
-import { useMutation } from 'convex/react';
 import { type SubmitEventHandler, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -14,21 +13,22 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
-import { api } from '@/convex/_generated/api';
-import type { Doc } from '@/convex/_generated/dataModel';
+import type { DocumentDto } from '@/lib/api';
+import { renameDocument } from '@/lib/documents';
 
 interface RenameDocumentDialogProps {
-  document: Doc<'documents'>;
+  document: DocumentDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRenamed: () => void;
 }
 
 export const RenameDocumentDialog = ({
   document,
   open,
   onOpenChange,
+  onRenamed,
 }: RenameDocumentDialogProps) => {
-  const update = useMutation(api.documents.updateById);
   const [isUpdating, setIsUpdating] = useState(false);
   const [title, setTitle] = useState<string>(document.title);
 
@@ -50,7 +50,8 @@ export const RenameDocumentDialog = ({
     if (!title.trim()) return;
 
     setIsUpdating(true);
-    update({ id: document._id, title })
+    renameDocument(document.id, title)
+      .then(() => onRenamed())
       .catch(() =>
         toast.add({
           type: 'error',

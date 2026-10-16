@@ -1,9 +1,9 @@
 'use client';
 
-import { useMutation } from 'convex/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { useOrganization } from '@/components/organization-provider';
 import {
   Carousel,
   CarouselContent,
@@ -11,19 +11,29 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { toast } from '@/components/ui/toast';
 import { templates } from '@/consts/templates';
-import { api } from '@/convex/_generated/api';
+import { createDocument } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 
-export const TemplatesGallery = () => {
+export const TemplatesGallery = ({ onCreated }: { onCreated: () => void }) => {
   const router = useRouter();
-  const create = useMutation(api.documents.create);
+  const { currentOrganizationId } = useOrganization();
   const [isCreating, setIsCreating] = useState(false);
 
-  const onTemplateClick = (title: string, initialContent?: string) => {
+  const onTemplateClick = (title: string) => {
     setIsCreating(true);
-    create({ title, initialContent })
-      .then((documentId) => router.push(`/documents/${documentId}`))
+    createDocument({ title, organizationId: currentOrganizationId })
+      .then((document) => {
+        onCreated();
+        router.push(`/documents/${document.id}`);
+      })
+      .catch(() =>
+        toast.add({
+          type: 'error',
+          title: 'Не удалось создать документ',
+        }),
+      )
       .finally(() => setIsCreating(false));
   };
 
@@ -45,8 +55,8 @@ export const TemplatesGallery = () => {
                   )}
                 >
                   <button
+                    type="button"
                     disabled={isCreating}
-                    // todo add initial content
                     onClick={() => onTemplateClick(template.label)}
                     style={{
                       backgroundImage: `url(${template.imageUrl})`,

@@ -1,21 +1,33 @@
 'use client';
 
-import { usePaginatedQuery } from 'convex/react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { DocumentsTable } from '@/app/(home)/documents-table';
-import { api } from '@/convex/_generated/api';
-import { useSearchParam } from '@/hooks/use-search-param';
-
-import { HomeNavbar } from './home-navbar';
-import { TemplatesGallery } from './templates-gallery';
+import { HomeNavbar } from '@/app/(home)/home-navbar';
+import { TemplatesGallery } from '@/app/(home)/templates-gallery';
+import { useAuth } from '@/components/auth-provider';
+import type { DocumentDto } from '@/lib/api';
+import { listDocuments } from '@/lib/documents';
 
 const Home = () => {
-  const [search] = useSearchParam('search');
-  const {
-    results: documents,
-    status,
-    loadMore,
-  } = usePaginatedQuery(api.documents.get, { search }, { initialNumItems: 5 });
+  const { status } = useAuth();
+  const [documents, setDocuments] = useState<DocumentDto[] | null>(null);
+  const [hasError, setHasError] = useState(false);
+
+  const reload = useCallback(async () => {
+    try {
+      setDocuments(await listDocuments());
+      setHasError(false);
+    } catch {
+      setHasError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    reload();
+  }, [status, reload]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -23,11 +35,11 @@ const Home = () => {
         <HomeNavbar />
       </div>
       <div className="mt-16">
-        <TemplatesGallery />
+        <TemplatesGallery onCreated={reload} />
         <DocumentsTable
           documents={documents}
-          status={status}
-          loadMore={loadMore}
+          hasError={hasError}
+          onChanged={reload}
         />
       </div>
     </div>

@@ -1,6 +1,5 @@
 'use client';
 
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import {
   BoldIcon,
   FileIcon,
@@ -19,6 +18,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 
+import { OrganizationSwitcher } from '@/app/(home)/organization-switcher';
 import { DocumentInput } from '@/app/documents/[documentId]/document-input';
 import {
   Menubar,
@@ -32,6 +32,7 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from '@/components/ui/menubar';
+import { UserMenu } from '@/components/user-menu';
 import { useEditorStore } from '@/store/use-editor-store';
 
 // todo добавить шорткаты
@@ -234,13 +235,8 @@ export const Navbar = () => {
         </div>
       </div>
       <div className="flex gap-3 pl-6">
-        <OrganizationSwitcher
-          afterCreateOrganizationUrl="/"
-          afterLeaveOrganizationUrl="/"
-          afterSelectOrganizationUrl="/"
-          afterSelectPersonalUrl="/"
-        />
-        <UserButton />
+        <OrganizationSwitcher />
+        <UserMenu />
       </div>
     </nav>
   );

@@ -3,22 +3,13 @@ import { Navbar } from './navbar';
 import { Room } from './room';
 import { Toolbar } from './toolbar';
 
-interface DocumentIdPageProps {
-  params: Promise<{ documentId: string }>;
-}
-
-const DocumentIdPage = async ({ params }: DocumentIdPageProps) => {
-  const awaitedParams = await params;
-  const { documentId } = awaitedParams;
-
+const DocumentIdPage = () => {
   return (
-    <>
+    <Room>
       <Navbar />
       <Toolbar />
-      <Room>
-        <Editor />
-      </Room>
-    </>
+      <Editor />
+    </Room>
   );
 };
 

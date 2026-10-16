@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import '@liveblocks/react-ui/styles.css';
-import '@liveblocks/react-tiptap/styles.css';
-import './globals.css';
 import { NuqsAdapter } from 'nuqs/adapters/next';
+import './globals.css';
 
-import { ConvexClientProvider } from '@/components/convex-client-provider';
+import { AuthProvider } from '@/components/auth-provider';
+import { OrganizationProvider } from '@/components/organization-provider';
 import { Toaster } from '@/components/ui/toast';
 
 const inter = Inter({
@@ -23,10 +22,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     <html lang="en" className={`${inter.variable} antialiased`}>
       <body className="min-h-full flex flex-col">
         <NuqsAdapter>
-          <ConvexClientProvider>
-            <Toaster />
-            {children}
-          </ConvexClientProvider>
+          <AuthProvider>
+            <OrganizationProvider>
+              <Toaster />
+              {children}
+            </OrganizationProvider>
+          </AuthProvider>
         </NuqsAdapter>
       </body>
     </html>

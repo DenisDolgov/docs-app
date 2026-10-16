@@ -17,14 +17,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { Doc, Id } from '@/convex/_generated/dataModel';
+import type { DocumentDto } from '@/lib/api';
 
 interface DocumentMenuProps {
-  document: Doc<'documents'>;
-  onNewTab: (id: Id<'documents'>) => void;
+  document: DocumentDto;
+  onNewTab: (id: string) => void;
+  onChanged: () => void;
 }
 
-export const DocumentMenu = ({ document, onNewTab }: DocumentMenuProps) => {
+export const DocumentMenu = ({
+  document,
+  onNewTab,
+  onChanged,
+}: DocumentMenuProps) => {
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -51,7 +56,7 @@ export const DocumentMenu = ({ document, onNewTab }: DocumentMenuProps) => {
           <FilePenIcon className="size-4" />
           Переименовать
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onNewTab(document._id)}>
+        <DropdownMenuItem onClick={() => onNewTab(document.id)}>
           <ExternalLinkIcon className="size-4" />
           Открыть в новой вкладке
         </DropdownMenuItem>
@@ -60,11 +65,13 @@ export const DocumentMenu = ({ document, onNewTab }: DocumentMenuProps) => {
         document={document}
         open={isRemoveOpen}
         onOpenChange={setIsRemoveOpen}
+        onRemoved={onChanged}
       />
       <RenameDocumentDialog
         document={document}
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
+        onRenamed={onChanged}
       />
     </DropdownMenu>
   );

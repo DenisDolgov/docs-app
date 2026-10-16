@@ -1,8 +1,8 @@
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { SearchInput } from '@/app/(home)/search-input';
+import { OrganizationSwitcher } from '@/app/(home)/organization-switcher';
+import { UserMenu } from '@/components/user-menu';
 
 export const HomeNavbar = () => {
   return (
@@ -13,15 +13,9 @@ export const HomeNavbar = () => {
         </Link>
         <h3 className="text-xl">Документы</h3>
       </div>
-      <SearchInput />
       <div className="flex gap-3 pl-6">
-        <OrganizationSwitcher
-          afterCreateOrganizationUrl="/"
-          afterLeaveOrganizationUrl="/"
-          afterSelectOrganizationUrl="/"
-          afterSelectPersonalUrl="/"
-        />
-        <UserButton />
+        <OrganizationSwitcher />
+        <UserMenu />
       </div>
     </nav>
   );

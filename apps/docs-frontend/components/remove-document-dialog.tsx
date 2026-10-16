@@ -1,6 +1,5 @@
 'use client';
 
-import { useMutation } from 'convex/react';
 import { useEffect, useState } from 'react';
 
 import {
@@ -14,21 +13,22 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/components/ui/toast';
-import { api } from '@/convex/_generated/api';
-import type { Doc } from '@/convex/_generated/dataModel';
+import type { DocumentDto } from '@/lib/api';
+import { removeDocument } from '@/lib/documents';
 
 interface RemoveDocumentDialogProps {
-  document: Doc<'documents'>;
+  document: DocumentDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRemoved: () => void;
 }
 
 export const RemoveDocumentDialog = ({
   document,
   open,
   onOpenChange,
+  onRemoved,
 }: RemoveDocumentDialogProps) => {
-  const remove = useMutation(api.documents.removeById);
   const [isRemoving, setIsRemoving] = useState(false);
 
   useEffect(() => {
@@ -39,18 +39,19 @@ export const RemoveDocumentDialog = ({
 
   const handleConfirm = () => {
     setIsRemoving(true);
-    remove({ id: document._id })
-      .then(() => onOpenChange(false))
+    removeDocument(document.id)
+      .then(() => {
+        onOpenChange(false);
+        onRemoved();
+        toast.add({
+          type: 'success',
+          title: 'Документ удален',
+        });
+      })
       .catch(() =>
         toast.add({
           type: 'error',
           title: 'Не удалось удалить документ',
-        }),
-      )
-      .then(() =>
-        toast.add({
-          type: 'success',
-          title: 'Документ удален',
         }),
       )
       .finally(() => setIsRemoving(false));

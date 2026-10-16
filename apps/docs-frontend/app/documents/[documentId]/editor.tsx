@@ -1,48 +1,28 @@
 'use client';
 
-import { useLiveblocksExtension } from '@liveblocks/react-tiptap';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCaret from '@tiptap/extension-collaboration-caret';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
 import TextAlign from '@tiptap/extension-text-align';
 import { TextStyleKit } from '@tiptap/extension-text-style';
-import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
+import { useRoom } from '@/app/documents/[documentId]/room';
 import { Ruler } from '@/app/documents/[documentId]/ruler';
+import { useAuth } from '@/components/auth-provider';
+import { presenceFromEmail } from '@/lib/collab/presence';
 import { useEditorStore } from '@/store/use-editor-store';
 
 // todo use tiptap hooks for state sharing
 export const Editor = () => {
   const { setEditor } = useEditorStore();
-  const liveblocks = useLiveblocksExtension({
-    initialContent:
-      '<table>\n' +
-      '          <tbody>\n' +
-      '            <tr>\n' +
-      '              <th><mark>Name</mark></th>\n' +
-      '              <th colspan="3">Description</th>\n' +
-      '            </tr>\n' +
-      '            <tr>\n' +
-      '              <td>Cyndi Lauper</td>\n' +
-      '              <td>Singer</td>\n' +
-      '              <td>Songwriter</td>\n' +
-      '              <td>Actress</td>\n' +
-      '            </tr>\n' +
-      '          </tbody>\n' +
-      '        </table>' +
-      '<img src="https://placehold.co/600x400" />\n' +
-      '        <img src="https://placehold.co/800x400" />' +
-      '<p>\n' +
-      '          Wow, this editor has support for links to the whole <a href="https://en.wikipedia.org/wiki/World_Wide_Web">world wide web</a>. We tested a lot of URLs and I think you can add *every URL* you want. Isn’t that cool? Let’s try <a href="https://statamic.com/">another one!</a> Yep, seems to work.\n' +
-      '        </p>\n' +
-      '        <p>\n' +
-      '          By default every link will get a <code>rel="noopener noreferrer nofollow"</code> attribute. It’s configurable though.\n' +
-      '        </p>',
-  });
+  const { provider } = useRoom();
+  const { user } = useAuth();
+  const presence = presenceFromEmail(user?.email ?? 'Аноним');
 
   const editor = useEditor({
     onCreate({ editor }) {
@@ -77,11 +57,18 @@ export const Editor = () => {
       },
     },
     extensions: [
-      liveblocks,
+      Collaboration.configure({
+        document: provider.doc,
+      }),
+      CollaborationCaret.configure({
+        provider,
+        user: presence,
+      }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
       StarterKit.configure({
+        // историю ведёт Collaboration, встроенную выключаем
         undoRedo: false,
         link: {
           openOnClick: false,
