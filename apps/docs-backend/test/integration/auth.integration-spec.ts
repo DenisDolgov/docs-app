@@ -124,4 +124,49 @@ where table_schema = 'auth' and table_name = 'users' order by column_name`,
       UnauthorizedException,
     );
   });
+
+  it('внутри grace-окна повторно предъявленный токен ротирует, а не сносит сессию', async () => {
+    const { email } = await register();
+
+    const first = await auth.login({ email, password: PASSWORD });
+    const rotated = await auth.refresh(first.refreshToken);
+
+    // Повторное предъявление того же токена сразу же — типичная гонка вкладок.
+    const again = await auth.refresh(first.refreshToken);
+
+    expect(again.accessToken).toEqual(expect.any(String));
+
+    // Преемник предыдущей ротации отозван с причиной `rotated`.
+    const successor = await db.execute<{
+      revoked_at: string | null;
+      revoked_reason: string | null;
+    }>(
+      sql`select revoked_at, revoked_reason from auth.refresh_tokens
+          where token_hash = ${hashRefreshToken(rotated.refreshToken)}`,
+    );
+
+    expect(successor.rows[0]?.revoked_reason).toBe('rotated');
+    expect(successor.rows[0]?.revoked_at).not.toBeNull();
+  });
+
+  it('за пределами grace-окна повторное предъявление сносит все сессии', async () => {
+    const { email } = await register();
+
+    const first = await auth.login({ email, password: PASSWORD });
+    const rotated = await auth.refresh(first.refreshToken);
+
+    await db.execute(
+      sql`update auth.refresh_tokens set revoked_at = now() - interval '1 minute'
+          where token_hash = ${hashRefreshToken(first.refreshToken)}`,
+    );
+
+    await expect(auth.refresh(first.refreshToken)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+
+    // `reuse` снёс и живого преемника.
+    await expect(auth.refresh(rotated.refreshToken)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
 });

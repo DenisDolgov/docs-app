@@ -11,7 +11,7 @@ import {
 
 import { useAuth } from '@/components/auth-provider';
 import { ScreenLoader } from '@/components/screen-loader';
-import { getAccessToken } from '@/lib/api';
+import { refreshSession } from '@/lib/auth-session';
 import {
   type CollabCloseInfo,
   CollabProvider,
@@ -51,13 +51,10 @@ export const Room = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (authStatus !== 'authenticated') return;
 
-    const token = getAccessToken();
-    if (!token) return;
-
     const created = new CollabProvider({
       documentId: params.documentId,
-      token,
       url: COLLAB_WS_URL,
+      refreshSession,
       onStatusChange: setStatus,
       onClose: setCloseInfo,
     });

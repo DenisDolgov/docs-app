@@ -4,7 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createTestApp } from '../utils';
+import { ACCESS_COOKIE_NAME } from '../../src/auth/auth.constants';
+import { createTestApp, findCookie, readAccessToken } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'test-access-secret';
@@ -37,13 +38,20 @@ describe('POST /auth/login', () => {
     await close();
   });
 
-  it('выдаёт access-токен на верные email и пароль', async () => {
+  it('выдаёт access-токен в httpOnly-куке на верные email и пароль', async () => {
     const email = await register();
 
     const res = await login(email);
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ accessToken: expect.any(String) });
+    // Токен не отдаём в теле: его не должен видеть JS.
+    expect(res.body).not.toHaveProperty('accessToken');
+
+    const accessCookie = findCookie(res, ACCESS_COOKIE_NAME);
+    expect(accessCookie).toBeTruthy();
+    expect(accessCookie).toMatch(/HttpOnly/i);
+    expect(accessCookie).toMatch(/Path=\//i);
+    expect(accessCookie).toMatch(/SameSite=Strict/i);
     expect(res.body).not.toHaveProperty('passwordHash');
     expect(res.body).not.toHaveProperty('password_hash');
   });
@@ -68,7 +76,7 @@ describe('POST /auth/login', () => {
     const res = await login(email.toUpperCase());
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ accessToken: expect.any(String) });
+    expect(findCookie(res, ACCESS_COOKIE_NAME)).toBeTruthy();
   });
 
   it('отвечает 400 на невалидное тело', async () => {
@@ -95,7 +103,7 @@ describe('GET /auth/me', () => {
       .post('/auth/login')
       .send({ email, password: PASSWORD });
 
-    return { email, accessToken: res.body.accessToken as string };
+    return { email, accessToken: readAccessToken(res) };
   };
 
   beforeAll(async () => {

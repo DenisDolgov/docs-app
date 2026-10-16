@@ -4,7 +4,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { setupOpenApi } from '../../src/openapi/setup-openapi';
-import { createTestApp } from '../utils';
+import { createTestApp, readAccessToken } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const nextEmail = () => `user-${randomUUID()}@example.com`;
@@ -67,7 +67,7 @@ describe('openapi (e2e)', () => {
 
     const me = await request(app.getHttpServer())
       .get('/auth/me')
-      .set('Authorization', `Bearer ${login.body.accessToken}`);
+      .set('Authorization', `Bearer ${readAccessToken(login)}`);
 
     expect(me.status).toBe(200);
     expect(Object.keys(me.body).sort()).toEqual(['email', 'id']);

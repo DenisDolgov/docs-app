@@ -1,16 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { SESSION_HINT_COOKIE } from '@/lib/api';
+import { ACCESS_COOKIE_NAME } from '@/lib/auth-config';
 
 const authRoutes = ['/login', '/register'];
 
-// Грубый серверный гейт: по маркеру сессии пускаем, без него — на /login.
-// Маркер ставит клиент (`lib/api.ts`), т.к. httpOnly refresh-cookie с
-// `path=/auth` на страницах не видна. Настоящая сессия подтверждается на
-// клиенте вызовом POST /auth/refresh в AuthProvider.
 export const proxy = (request: NextRequest) => {
   const { pathname } = request.nextUrl;
-  const hasSession = request.cookies.has(SESSION_HINT_COOKIE);
+  const hasSession = request.cookies.has(ACCESS_COOKIE_NAME);
   const onAuthRoute = authRoutes.includes(pathname);
 
   if (!hasSession && !onAuthRoute) {

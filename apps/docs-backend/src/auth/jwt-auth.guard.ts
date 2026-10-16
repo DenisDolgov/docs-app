@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { type Request } from 'express';
 
+import { ACCESS_COOKIE_NAME } from './auth.constants';
 import { AccessTokenPayload } from './auth.models';
 import { UNAUTHORIZED_ERROR } from './errors';
 
@@ -32,6 +33,10 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractTokenFromRequest(req: Request) {
+    const cookieToken = req.cookies?.[ACCESS_COOKIE_NAME];
+
+    if (cookieToken) return cookieToken as string;
+
     const [type, token] = req.headers.authorization?.split(' ') ?? [];
 
     if (type === 'Bearer') return token;

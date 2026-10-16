@@ -1,0 +1,2 @@
+CREATE TYPE "refresh_token_revoke_reason" AS ENUM('rotated', 'logout', 'logout_all', 'reuse');--> statement-breakpoint
+ALTER TABLE "auth"."refresh_tokens" ADD COLUMN "revoked_reason" "refresh_token_revoke_reason";

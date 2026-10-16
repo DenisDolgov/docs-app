@@ -17,6 +17,7 @@ import {
   logout as apiLogout,
   register as apiRegister,
   bootstrapUser,
+  setSessionExpiredHandler,
   type User,
 } from '@/lib/api';
 
@@ -72,8 +73,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setStatus('unauthenticated');
   }, []);
 
+  // Жёсткий конец сессии (refresh вернул 401) — сбрасываем состояние и уходим
+  // на /login. Дедупликация живёт в `auth-session`.
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      setUser(null);
+      setStatus('unauthenticated');
+      router.replace('/login');
+    });
+  }, [router]);
+
   // Навигационный гейт на клиенте: серверный прокси проверяет только наличие
-  // refresh-cookie, а здесь сессия подтверждается вызовом /auth/refresh.
+  // access-куки, а здесь сессия подтверждается вызовом /auth/me (+ refresh).
   useEffect(() => {
     if (status === 'loading') return;
 

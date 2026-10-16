@@ -4,15 +4,24 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ACCESS_COOKIE_NAME } from '../../src/auth/auth.constants';
 import { JwtAuthGuard } from '../../src/auth/jwt-auth.guard';
 
 const jwtService = {
   verifyAsync: vi.fn(),
 };
 
-const contextFor = (authorization?: string) => {
-  const request: { headers: { authorization?: string }; user?: unknown } = {
+const contextFor = (
+  authorization?: string,
+  cookies: Record<string, string> = {},
+) => {
+  const request: {
+    headers: { authorization?: string };
+    cookies: Record<string, string>;
+    user?: unknown;
+  } = {
     headers: { authorization },
+    cookies,
   };
 
   return {
@@ -76,5 +85,35 @@ describe('JwtAuthGuard (unit)', () => {
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+  });
+
+  it('читает access-токен из куки без заголовка Authorization', async () => {
+    jwtService.verifyAsync.mockResolvedValue({
+      sub: 'user-1',
+      email: 'user@example.com',
+    });
+    const { context, request } = contextFor(undefined, {
+      [ACCESS_COOKIE_NAME]: 'cookie.token',
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('cookie.token');
+    expect(request.user).toEqual({
+      sub: 'user-1',
+      email: 'user@example.com',
+    });
+  });
+
+  it('предпочитает куку заголовку Bearer', async () => {
+    jwtService.verifyAsync.mockResolvedValue({
+      sub: 'user-1',
+      email: 'user@example.com',
+    });
+    const { context } = contextFor('Bearer header.token', {
+      [ACCESS_COOKIE_NAME]: 'cookie.token',
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('cookie.token');
   });
 });

@@ -26,6 +26,7 @@ const refreshTokenRepository = {
   create: vi.fn(),
   findByHash: vi.fn(),
   revokeByHash: vi.fn(),
+  revokeActiveBySessionId: vi.fn(),
   revokeBySessionId: vi.fn(),
   revokeAllByUser: vi.fn(),
 };
@@ -139,6 +140,7 @@ describe('AuthService (unit)', () => {
         sessionId: 'session-1',
         tokenHash: 'hash-1',
         revokedAt: new Date(),
+        revokedReason: 'reuse',
         expiresAt: new Date(Date.now() + 60_000),
       });
 
@@ -148,6 +150,7 @@ describe('AuthService (unit)', () => {
 
       expect(refreshTokenRepository.revokeAllByUser).toHaveBeenCalledWith(
         'user-1',
+        'reuse',
       );
     });
 
@@ -157,6 +160,7 @@ describe('AuthService (unit)', () => {
         sessionId: 'session-1',
         tokenHash: 'hash-1',
         revokedAt: new Date(),
+        revokedReason: 'logout',
         expiresAt: new Date(Date.now() - 60_000),
       });
 
@@ -164,6 +168,7 @@ describe('AuthService (unit)', () => {
 
       expect(refreshTokenRepository.revokeAllByUser).toHaveBeenCalledWith(
         'user-1',
+        'reuse',
       );
     });
 
@@ -225,6 +230,7 @@ describe('AuthService (unit)', () => {
         sessionId: 'session-1',
         tokenHash: 'hash-1',
         revokedAt: null,
+        revokedReason: null,
         expiresAt: new Date(Date.now() + 60_000),
       });
       userRepository.findById.mockResolvedValue({
@@ -239,11 +245,59 @@ describe('AuthService (unit)', () => {
 
       expect(refreshTokenRepository.revokeByHash).toHaveBeenCalledWith(
         'hash-1',
+        'rotated',
       );
       expect(refreshTokenRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ userId: 'user-1', sessionId: 'session-1' }),
       );
       expect(result.accessToken).toBe('signed.access.token');
+    });
+
+    it('внутри grace-окна повторно ротирует в ту же сессию, не снося её', async () => {
+      refreshTokenRepository.findByHash.mockResolvedValue({
+        userId: 'user-1',
+        sessionId: 'session-1',
+        tokenHash: 'hash-1',
+        revokedAt: new Date(Date.now() - 1_000),
+        revokedReason: 'rotated',
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      userRepository.findById.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+      });
+
+      const result = await service.refresh('racing');
+
+      expect(refreshTokenRepository.revokeAllByUser).not.toHaveBeenCalled();
+      expect(
+        refreshTokenRepository.revokeActiveBySessionId,
+      ).toHaveBeenCalledWith('session-1', 'rotated');
+      expect(refreshTokenRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-1', sessionId: 'session-1' }),
+      );
+      expect(result.accessToken).toBe('signed.access.token');
+    });
+
+    it('за пределами grace-окна сносит все сессии (reuse)', async () => {
+      refreshTokenRepository.findByHash.mockResolvedValue({
+        userId: 'user-1',
+        sessionId: 'session-1',
+        tokenHash: 'hash-1',
+        revokedAt: new Date(Date.now() - 60_000),
+        revokedReason: 'rotated',
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+
+      await expect(service.refresh('stale')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+
+      expect(refreshTokenRepository.revokeAllByUser).toHaveBeenCalledWith(
+        'user-1',
+        'reuse',
+      );
+      expect(refreshTokenRepository.create).not.toHaveBeenCalled();
     });
   });
 
@@ -266,6 +320,7 @@ describe('AuthService (unit)', () => {
 
       expect(refreshTokenRepository.revokeBySessionId).toHaveBeenCalledWith(
         'session-1',
+        'logout',
       );
     });
   });
@@ -282,6 +337,7 @@ describe('AuthService (unit)', () => {
 
       expect(refreshTokenRepository.revokeAllByUser).toHaveBeenCalledWith(
         'user-1',
+        'logout_all',
       );
     });
   });

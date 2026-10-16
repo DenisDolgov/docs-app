@@ -15,7 +15,12 @@ import { ApiOkResponse } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
 import { z } from 'zod';
 
-import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_TTL } from './auth.constants';
+import {
+  ACCESS_COOKIE_NAME,
+  ACCESS_COOKIE_TTL,
+  REFRESH_COOKIE_NAME,
+  REFRESH_COOKIE_TTL,
+} from './auth.constants';
 import { AccessTokenPayload } from './auth.models';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
@@ -42,11 +47,8 @@ export class AuthController {
   ) {
     const { accessToken, refreshToken } = await this.authService.login(body);
 
+    this.setAccessTokenCookie(res, accessToken);
     this.setRefreshTokenCookie(res, refreshToken);
-
-    return {
-      accessToken,
-    };
   }
 
   @Post('refresh')
@@ -58,17 +60,21 @@ export class AuthController {
     const refreshToken = req.cookies[REFRESH_COOKIE_NAME];
 
     if (!refreshToken) {
+      this.clearAuthCookies(res);
       throw new UnauthorizedException(UNAUTHORIZED_ERROR);
     }
 
-    const { accessToken, refreshToken: newRefreshToken } =
-      await this.authService.refresh(refreshToken);
+    try {
+      const { accessToken, refreshToken: newRefreshToken } =
+        await this.authService.refresh(refreshToken);
 
-    this.setRefreshTokenCookie(res, newRefreshToken);
-
-    return {
-      accessToken,
-    };
+      this.setAccessTokenCookie(res, accessToken);
+      this.setRefreshTokenCookie(res, newRefreshToken);
+    } catch (error) {
+      // httpOnly-куки клиент удалить не может — чистит сервер.
+      this.clearAuthCookies(res);
+      throw error;
+    }
   }
 
   @Post('logout')
@@ -80,7 +86,7 @@ export class AuthController {
       await this.authService.logout(refreshToken);
     }
 
-    this.clearRefreshTokenCookie(res);
+    this.clearAuthCookies(res);
   }
 
   @Post('logout-all')
@@ -95,7 +101,7 @@ export class AuthController {
       await this.authService.logoutAll(refreshToken);
     }
 
-    this.clearRefreshTokenCookie(res);
+    this.clearAuthCookies(res);
   }
 
   @Get('me')
@@ -109,6 +115,18 @@ export class AuthController {
     };
   }
 
+  private setAccessTokenCookie(res: Response, accessToken: string) {
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: ACCESS_COOKIE_TTL,
+      // Префикс `__Host-` требует Secure в любом окружении, иначе браузер
+      // отбросит куку; localhost браузеры считают доверенным origin.
+      secure: true,
+    });
+  }
+
   private setRefreshTokenCookie(res: Response, refreshToken: string) {
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
       httpOnly: true,
@@ -119,7 +137,11 @@ export class AuthController {
     });
   }
 
-  private clearRefreshTokenCookie(res: Response) {
+  private clearAuthCookies(res: Response) {
+    res.clearCookie(ACCESS_COOKIE_NAME, {
+      path: '/',
+      secure: true,
+    });
     res.clearCookie(REFRESH_COOKIE_NAME, {
       path: '/auth',
       secure: process.env.NODE_ENV === 'production',

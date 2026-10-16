@@ -20,6 +20,8 @@ const CLOSE_REASONS: Record<number, string> = {
   4003: 'Нет доступа',
 };
 
+const SESSION_EXPIRED_CODE = 4001;
+
 const MAX_RECONNECT_DELAY = 15000;
 
 export type CollabStatus = 'connecting' | 'connected' | 'closed';
@@ -31,8 +33,10 @@ export interface CollabCloseInfo {
 
 interface CollabProviderOptions {
   documentId: string;
-  token: string;
   url: string;
+  // Убедиться, что access-кука свежая (дёрнуть refresh под локом), перед
+  // переподключением после отклонённого хендшейка.
+  refreshSession?: () => Promise<void>;
   onStatusChange?: (status: CollabStatus) => void;
   onClose?: (info: CollabCloseInfo) => void;
 }
@@ -76,7 +80,6 @@ export class CollabProvider {
 
     const url = new URL('/ws', this.options.url);
     url.searchParams.set('documentId', this.options.documentId);
-    url.searchParams.set('token', this.options.token);
 
     const socket = new WebSocket(url);
     socket.binaryType = 'arraybuffer';
@@ -168,6 +171,13 @@ export class CollabProvider {
     this.socket = null;
     if (this.destroyed) return;
 
+    // Хендшейк отклонён по авторизации: возможно, access-кука протухла —
+    // обновляем сессию и переподключаемся.
+    if (event.code === SESSION_EXPIRED_CODE) {
+      void this.handleUnauthorized();
+      return;
+    }
+
     const reason = CLOSE_REASONS[event.code];
 
     if (reason) {
@@ -176,7 +186,11 @@ export class CollabProvider {
       return;
     }
 
-    // Сетевой сбой — ограниченный ретрай с экспоненциальным backoff.
+    this.scheduleReconnect();
+  };
+
+  private scheduleReconnect = () => {
+    // Ограниченный ретрай с экспоненциальным backoff.
     this.options.onStatusChange?.('connecting');
     const delay = Math.min(
       1000 * 2 ** this.reconnectAttempts,
@@ -184,5 +198,33 @@ export class CollabProvider {
     );
     this.reconnectAttempts += 1;
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
+  };
+
+  private handleUnauthorized = async () => {
+    const refuse = () => {
+      this.options.onStatusChange?.('closed');
+      this.options.onClose?.({
+        code: SESSION_EXPIRED_CODE,
+        message: CLOSE_REASONS[SESSION_EXPIRED_CODE],
+      });
+    };
+
+    if (!this.options.refreshSession) {
+      refuse();
+      return;
+    }
+
+    this.options.onStatusChange?.('connecting');
+
+    try {
+      await this.options.refreshSession();
+    } catch {
+      refuse();
+      return;
+    }
+
+    if (this.destroyed) return;
+
+    this.scheduleReconnect();
   };
 }

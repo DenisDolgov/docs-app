@@ -3,7 +3,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createTestApp } from '../utils';
+import { createTestApp, readAccessToken } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const nextEmail = () => `user-${randomUUID()}@example.com`;
@@ -23,7 +23,7 @@ describe('documents (e2e)', () => {
       .post('/auth/login')
       .send({ email, password: PASSWORD });
 
-    return { email, accessToken: res.body.accessToken as string };
+    return { email, accessToken: readAccessToken(res) };
   };
 
   const createOrganization = (accessToken: string, name = 'Acme') =>

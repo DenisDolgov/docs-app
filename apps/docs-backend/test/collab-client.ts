@@ -5,6 +5,8 @@ import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 
+import { ACCESS_COOKIE_NAME } from '../src/auth/auth.constants';
+
 // Номера типов кадра берём из спецификации y-protocols, а не из серверных
 // констант: это внешний клиент, он знает только проводной формат
 // (0 — sync, 1 — awareness). Так же устроен референсный y-websocket.
@@ -23,7 +25,7 @@ export interface CollabClient {
 // Минимальный клиент протокола Yjs: рукопожатие sync, обмен апдейтами и
 // awareness. Собран напрямую из lib0 + y-protocols (а не из серверных
 // хелперов), чтобы проверять реальный проводной формат, а не зеркало
-// реализации. Токен передаётся в query-строке, как это делает y-websocket.
+// реализации. Access-токен едет в httpOnly-куке, как это делает браузер.
 export const openCollabClient = (
   baseUrl: string,
   documentId: string,
@@ -31,11 +33,14 @@ export const openCollabClient = (
 ): CollabClient => {
   const url = new URL(`${baseUrl}/ws`);
   url.searchParams.set('documentId', documentId);
-  if (token) url.searchParams.set('token', token);
+
+  const headers = token
+    ? { Cookie: `${ACCESS_COOKIE_NAME}=${token}` }
+    : undefined;
 
   const doc = new Y.Doc();
   const awareness = new awarenessProtocol.Awareness(doc);
-  const socket = new WS(url.toString());
+  const socket = new WS(url.toString(), { headers });
 
   const send = (frame: Uint8Array) => {
     if (socket.readyState === WS.OPEN) socket.send(frame);

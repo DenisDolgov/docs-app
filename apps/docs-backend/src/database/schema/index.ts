@@ -13,7 +13,13 @@ export {
   organizationSchema,
   organizations,
 } from './organizations';
-export { authSchema, refreshTokens, users } from './users';
+export {
+  authSchema,
+  type RefreshTokenRevokeReason,
+  refreshTokenRevokeReasonEnum,
+  refreshTokens,
+  users,
+} from './users';
 
 export const relations = defineRelations(
   {

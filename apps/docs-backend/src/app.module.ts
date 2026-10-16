@@ -4,11 +4,12 @@ import {
   StandardSchemaValidationPipe,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module';
 import { CollabModule } from './collab/collab.module';
+import { OriginGuard } from './common/origin.guard';
 import { envSchema } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { DocumentModule } from './document/document.module';
@@ -42,6 +43,10 @@ import { StorageModule } from './storage/storage.module';
   ],
   controllers: [],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: OriginGuard,
+    },
     {
       provide: APP_PIPE,
       useClass: StandardSchemaValidationPipe,

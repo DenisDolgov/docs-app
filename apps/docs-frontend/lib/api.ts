@@ -1,25 +1,25 @@
-// Тонкий клиент нашего REST API.
-// Access-токен живёт в переменной модуля (в памяти вкладки), refresh — в
-// httpOnly-cookie, которую браузер шлёт сам при `credentials: 'include'`.
+// Тонкий клиент нашего REST API. Access- и refresh-токены живут в httpOnly-куках,
+// которые браузер шлёт сам при `credentials: 'include'`; JS их не читает.
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { API_URL } from './auth-config';
+import {
+  refreshSession,
+  resetSessionExpired,
+  SessionExpired,
+} from './auth-session';
 
-export const REFRESH_COOKIE_NAME = 'docs.refreshToken';
-
-// Несекретный маркер «сессия есть» для серверного гейта `proxy.ts`: refresh
-// httpOnly-cookie лежит с `path=/auth` и на страницах просто не видна.
-export const SESSION_HINT_COOKIE = 'docs.session';
-
-const setSessionHint = () => {
-  // biome-ignore lint/suspicious/noDocumentCookie: несекретный маркер для proxy.ts
-  document.cookie = `${SESSION_HINT_COOKIE}=1; path=/; SameSite=Lax`;
-};
-
-const clearSessionHint = () => {
-  // biome-ignore lint/suspicious/noDocumentCookie: несекретный маркер для proxy.ts
-  document.cookie = `${SESSION_HINT_COOKIE}=; path=/; Max-Age=0; SameSite=Lax`;
-};
+export {
+  ACCESS_COOKIE_NAME,
+  API_URL,
+  REFRESH_COOKIE_NAME,
+} from './auth-config';
+export {
+  ensureRefreshed,
+  refreshSession,
+  SessionExpired,
+  setSessionExpiredHandler,
+  TransientError,
+} from './auth-session';
 
 export type OrganizationRole = 'owner' | 'admin' | 'member';
 
@@ -53,45 +53,6 @@ export class ApiError extends Error {
   }
 }
 
-let accessToken: string | null = null;
-let refreshPromise: Promise<string | null> | null = null;
-
-export const getAccessToken = () => accessToken;
-
-export const setAccessToken = (token: string | null) => {
-  accessToken = token;
-};
-
-// Single-flight: параллельные вызовы делят один запрос refresh.
-export const refresh = (): Promise<string | null> => {
-  refreshPromise ??= requestRefresh().finally(() => {
-    refreshPromise = null;
-  });
-
-  return refreshPromise;
-};
-
-const requestRefresh = async (): Promise<string | null> => {
-  const response = await fetch(`${API_URL}/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    accessToken = null;
-    clearSessionHint();
-    return null;
-  }
-
-  const { accessToken: token } = (await response.json()) as {
-    accessToken: string;
-  };
-  accessToken = token;
-  setSessionHint();
-
-  return accessToken;
-};
-
 const readErrorMessage = async (response: Response): Promise<string> => {
   try {
     const body = (await response.json()) as { message?: string | string[] };
@@ -106,20 +67,17 @@ const readErrorMessage = async (response: Response): Promise<string> => {
   return `Запрос завершился с кодом ${response.status}`;
 };
 
-// Обёртка над fetch: подставляет токен, при 401 один раз обновляет его и
-// повторяет запрос. Возвращает «сырой» Response — вызывающий решает, как читать.
+// Обёртка над fetch: при 401 один раз обновляет сессию и повторяет запрос.
+// Возвращает «сырой» Response — вызывающий решает, как читать.
 export const apiFetch = async (
   path: string,
   init: RequestInit = {},
   retry = true,
 ): Promise<Response> => {
-  if (!accessToken) await refresh();
-
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('content-type')) {
     headers.set('content-type', 'application/json');
   }
-  if (accessToken) headers.set('authorization', `Bearer ${accessToken}`);
 
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -128,8 +86,15 @@ export const apiFetch = async (
   });
 
   if (response.status === 401 && retry) {
-    const token = await refresh();
-    if (token) return apiFetch(path, init, false);
+    try {
+      await refreshSession();
+    } catch (error) {
+      if (error instanceof SessionExpired) return response;
+
+      throw error; // транзиент — наверх
+    }
+
+    return apiFetch(path, init, false);
   }
 
   return response;
@@ -162,11 +127,7 @@ export const login = async (email: string, password: string): Promise<User> => {
     throw new ApiError(response.status, await readErrorMessage(response));
   }
 
-  const { accessToken: token } = (await response.json()) as {
-    accessToken: string;
-  };
-  accessToken = token;
-  setSessionHint();
+  resetSessionExpired();
 
   return fetchMe();
 };
@@ -194,24 +155,20 @@ export const logout = async (): Promise<void> => {
     method: 'POST',
     credentials: 'include',
   }).catch(() => undefined);
-  accessToken = null;
-  clearSessionHint();
 };
 
 export const fetchMe = async (): Promise<User> => {
   return apiJson<User>('/auth/me');
 };
 
-// Восстановление сессии при загрузке страницы: пробуем refresh и, если токен
-// есть, читаем пользователя. Иначе — «не авторизован».
+// Восстановление сессии при загрузке страницы: `apiFetch` сам сходит в refresh
+// при 401. Если сессии нет — «не авторизован».
 export const bootstrapUser = async (): Promise<User | null> => {
-  const token = await refresh();
-  if (!token) return null;
-
   try {
     return await fetchMe();
-  } catch {
-    accessToken = null;
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return null;
+
+    throw error;
   }
 };

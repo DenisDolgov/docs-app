@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
+import { readAccessToken } from './utils';
+
 export const PASSWORD = 'correct horse battery staple';
 export const nextEmail = () => `user-${randomUUID()}@example.com`;
 
@@ -25,7 +27,7 @@ export const registerAndLogin = async (
     .post('/auth/login')
     .send({ email, password: PASSWORD });
 
-  return { email, accessToken: login.body.accessToken as string };
+  return { email, accessToken: readAccessToken(login) };
 };
 
 export const createOrganization = (

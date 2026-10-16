@@ -12,7 +12,7 @@ import * as argon2 from 'argon2';
 
 import { normalizeEmail } from '../common/utils/email';
 import { isUniqueViolation } from '../database/sql-errors';
-import { REFRESH_COOKIE_TTL } from './auth.constants';
+import { REFRESH_COOKIE_TTL, REFRESH_GRACE_PERIOD } from './auth.constants';
 import { LoginParams, RegisterParams } from './auth.models';
 import {
   INVALID_EMAIL_OR_PASSWORD_ERROR,
@@ -77,16 +77,7 @@ export class AuthService implements OnModuleInit {
     if (!isVerify)
       throw new UnauthorizedException(INVALID_EMAIL_OR_PASSWORD_ERROR);
 
-    const accessToken = this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-    });
-    const refreshToken = await this.createSession(user.id);
-
-    return {
-      accessToken,
-      refreshToken,
-    };
+    return this.issueTokens({ id: user.id, email: user.email });
   }
 
   public async refresh(refreshToken: string) {
@@ -97,7 +88,35 @@ export class AuthService implements OnModuleInit {
     if (!tokenRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
 
     if (tokenRecord.revokedAt) {
-      await this.refreshTokenRepository.revokeAllByUser(tokenRecord.userId);
+      const withinGrace =
+        tokenRecord.revokedReason === 'rotated' &&
+        Date.now() - tokenRecord.revokedAt.getTime() <= REFRESH_GRACE_PERIOD;
+
+      if (withinGrace) {
+        const userRecord = await this.userRepository.findById(
+          tokenRecord.userId,
+        );
+
+        if (!userRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+
+        this.logger.warn(
+          `Refresh-токен предъявлен повторно внутри grace-окна: sessionId=${tokenRecord.sessionId}`,
+        );
+
+        // Преемника отзываем, а не сносим все сессии: клиент, скорее всего,
+        // просто не увидел ответ предыдущей ротации.
+        await this.refreshTokenRepository.revokeActiveBySessionId(
+          tokenRecord.sessionId,
+          'rotated',
+        );
+
+        return this.issueTokens(userRecord, tokenRecord.sessionId);
+      }
+
+      await this.refreshTokenRepository.revokeAllByUser(
+        tokenRecord.userId,
+        'reuse',
+      );
 
       throw new UnauthorizedException(UNAUTHORIZED_ERROR);
     }
@@ -111,24 +130,13 @@ export class AuthService implements OnModuleInit {
 
     const revokedTokenRecord = await this.refreshTokenRepository.revokeByHash(
       tokenRecord.tokenHash,
+      'rotated',
     );
 
     if (!revokedTokenRecord)
       throw new UnauthorizedException(UNAUTHORIZED_ERROR);
 
-    const accessToken = this.jwtService.sign({
-      sub: userRecord.id,
-      email: userRecord.email,
-    });
-    const newRefreshToken = await this.createSession(
-      userRecord.id,
-      tokenRecord.sessionId,
-    );
-
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-    };
+    return this.issueTokens(userRecord, tokenRecord.sessionId);
   }
 
   public async logout(refreshToken: string) {
@@ -137,7 +145,10 @@ export class AuthService implements OnModuleInit {
 
     if (!tokenRecord) return;
 
-    await this.refreshTokenRepository.revokeBySessionId(tokenRecord.sessionId);
+    await this.refreshTokenRepository.revokeBySessionId(
+      tokenRecord.sessionId,
+      'logout',
+    );
   }
 
   public async logoutAll(refreshToken: string) {
@@ -146,7 +157,26 @@ export class AuthService implements OnModuleInit {
 
     if (!tokenRecord) return;
 
-    return this.refreshTokenRepository.revokeAllByUser(tokenRecord.userId);
+    return this.refreshTokenRepository.revokeAllByUser(
+      tokenRecord.userId,
+      'logout_all',
+    );
+  }
+
+  private async issueTokens(
+    user: { id: string; email: string },
+    sessionId?: string,
+  ) {
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+    });
+    const refreshToken = await this.createSession(user.id, sessionId);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 
   private async createSession(userId: string, currentSessionId?: string) {

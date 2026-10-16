@@ -1,3 +1,5 @@
+import type { IncomingMessage } from 'node:http';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
   OnGatewayConnection,
@@ -5,6 +7,7 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 
+import { ACCESS_COOKIE_NAME } from '../auth/auth.constants';
 import { AccessTokenPayload } from '../auth/auth.models';
 import { COLLAB_MESSAGE_AWARENESS, COLLAB_WS_PATH } from './collab.constants';
 import { CollabConnection } from './collab.models';
@@ -19,26 +22,56 @@ import {
 import { CollabService } from './collab.service';
 import { CollabAccessService } from './collab-access.service';
 
+// Cookie-хедер upgrade-запроса парсим вручную: Express-middleware на upgrade
+// может не выполняться, а `cookie-parser` нам тут недоступен.
+const readCookie = (
+  cookieHeader: string | undefined,
+  name: string,
+): string | null => {
+  if (!cookieHeader) return null;
+
+  for (const part of cookieHeader.split(';')) {
+    const separator = part.indexOf('=');
+
+    if (separator === -1) continue;
+
+    if (part.slice(0, separator).trim() === name) {
+      return decodeURIComponent(part.slice(separator + 1).trim());
+    }
+  }
+
+  return null;
+};
+
 @WebSocketGateway({ path: COLLAB_WS_PATH })
 export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly collabService: CollabService,
     private readonly collabAccessService: CollabAccessService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async handleConnection(
     client: CollabConnection,
-    request: { url?: string },
+    request: IncomingMessage,
   ): Promise<void> {
     try {
       const url = new URL(request.url ?? '/', 'http://localhost');
       const documentId = url.searchParams.get('documentId');
-      const token = url.searchParams.get('token');
+      const origin = request.headers.origin;
+
+      // Origin проверяем и на WS-хендшейке: cookie шлётся браузером
+      // автоматически, поэтому CSWSH был бы возможен без этой сверки.
+      if (origin && origin !== this.configService.get<string>('CORS_ORIGIN')) {
+        return client.close(4003, 'Forbidden');
+      }
 
       if (!documentId) {
         return client.close(4000, 'Document ID is required');
       }
+
+      const token = readCookie(request.headers.cookie, ACCESS_COOKIE_NAME);
 
       if (!token) {
         return client.close(4001, 'Unauthorized');

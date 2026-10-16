@@ -1,10 +1,16 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { REFRESH_COOKIE_NAME } from '../../src/auth/auth.constants';
-import { createTestApp } from '../utils';
+import {
+  ACCESS_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+} from '../../src/auth/auth.constants';
+import { hashRefreshToken } from '../../src/auth/refresh-token';
+import { DATABASE, type Database } from '../../src/database/database.constants';
+import { createTestApp, readAccessToken } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
 const nextEmail = () => `user-${randomUUID()}@example.com`;
@@ -33,8 +39,17 @@ const expectRefreshCookieCleared = (res: request.Response) => {
   expect(cleared).toMatch(/Expires=Thu, 01 Jan 1970/i);
 };
 
+const expectAccessCookieCleared = (res: request.Response) => {
+  const cleared = findCookie(res, ACCESS_COOKIE_NAME);
+  expect(cleared).toBeTruthy();
+  expect(cookieValue(cleared as string)).toBe('');
+  expect(cleared).toMatch(/Path=\//i);
+  expect(cleared).toMatch(/Expires=Thu, 01 Jan 1970/i);
+};
+
 describe('refresh-токены', () => {
   let app: INestApplication;
+  let db: Database;
   let close: () => Promise<void>;
 
   const register = async () => {
@@ -56,7 +71,8 @@ describe('refresh-токены', () => {
 
     return {
       email,
-      accessToken: res.body.accessToken as string,
+      accessToken: readAccessToken(res),
+      accessCookie: findCookie(res, ACCESS_COOKIE_NAME),
       refreshCookie: findCookie(res, REFRESH_COOKIE_NAME),
     };
   };
@@ -70,6 +86,7 @@ describe('refresh-токены', () => {
   beforeAll(async () => {
     app = await createTestApp();
     await app.init();
+    db = app.get(DATABASE);
     close = () => app.close();
   });
 
@@ -77,8 +94,14 @@ describe('refresh-токены', () => {
     await close();
   });
 
-  it('логин устанавливает httpOnly refresh-cookie', async () => {
-    const { refreshCookie } = await login();
+  it('логин устанавливает httpOnly access- и refresh-куки', async () => {
+    const { accessCookie, refreshCookie } = await login();
+
+    expect(accessCookie).toBeTruthy();
+    expect(accessCookie).toMatch(/HttpOnly/i);
+    expect(accessCookie).toMatch(/Path=\//i);
+    expect(accessCookie).toMatch(/Secure/i);
+    expect(accessCookie).toMatch(/SameSite=Strict/i);
 
     expect(refreshCookie).toBeTruthy();
     expect(refreshCookie).toMatch(/HttpOnly/i);
@@ -93,7 +116,9 @@ describe('refresh-токены', () => {
     const res = await refresh(refreshCookie as string);
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ accessToken: expect.any(String) });
+    // Токен больше не в теле ответа.
+    expect(res.body).not.toHaveProperty('accessToken');
+    expect(findCookie(res, ACCESS_COOKIE_NAME)).toBeTruthy();
 
     const rotated = findCookie(res, REFRESH_COOKIE_NAME);
     expect(rotated).toBeTruthy();
@@ -101,24 +126,31 @@ describe('refresh-токены', () => {
 
     const me = await request(app.getHttpServer())
       .get('/auth/me')
-      .set('Authorization', `Bearer ${res.body.accessToken}`);
+      .set('Authorization', `Bearer ${readAccessToken(res)}`);
 
     expect(me.status).toBe(200);
   });
 
-  it('отклоняет уже использованный refresh-токен', async () => {
+  it('внутри grace-окна повторная ротация не сносит сессию', async () => {
     const { refreshCookie } = await login();
     const first = refreshCookie as string;
 
     const rotated = await refresh(first);
     expect(rotated.status).toBe(200);
 
+    // Тот же токен предъявлен снова сразу — гонка вкладок, не кража.
     const reused = await refresh(first);
+    expect(reused.status).toBe(200);
 
-    expect(reused.status).toBe(401);
+    // Свежий токен из grace-ротации рабочий.
+    const second = findCookie(reused, REFRESH_COOKIE_NAME) as string;
+    expect(second).toBeTruthy();
+
+    const next = await refresh(second);
+    expect(next.status).toBe(200);
   });
 
-  it('при повторном использовании отзывает всю сессию', async () => {
+  it('за пределами grace-окна повторное использование отзывает всю сессию', async () => {
     const { refreshCookie } = await login();
     const first = refreshCookie as string;
 
@@ -126,11 +158,17 @@ describe('refresh-токены', () => {
     const second = findCookie(rotated, REFRESH_COOKIE_NAME) as string;
     expect(second).toBeTruthy();
 
+    // Выносим отзыв за окно grace.
+    await db.execute(
+      sql`update auth.refresh_tokens set revoked_at = now() - interval '1 minute'
+          where token_hash = ${hashRefreshToken(cookieValue(first))}`,
+    );
+
     const reused = await refresh(first);
     expect(reused.status).toBe(401);
 
+    // `reuse` снёс и живого преемника.
     const afterReuse = await refresh(second);
-
     expect(afterReuse.status).toBe(401);
   });
 
@@ -138,9 +176,11 @@ describe('refresh-токены', () => {
     const res = await request(app.getHttpServer()).post('/auth/refresh');
 
     expect(res.status).toBe(401);
+    expectAccessCookieCleared(res);
+    expectRefreshCookieCleared(res);
   });
 
-  it('отвечает 401 на неизвестный refresh-токен', async () => {
+  it('отвечает 401 на неизвестный refresh-токен и чистит обе куки', async () => {
     const forged = randomBytes(32).toString('base64url');
 
     const res = await request(app.getHttpServer())
@@ -148,15 +188,18 @@ describe('refresh-токены', () => {
       .set('Cookie', `${REFRESH_COOKIE_NAME}=${forged}`);
 
     expect(res.status).toBe(401);
+    expectAccessCookieCleared(res);
+    expectRefreshCookieCleared(res);
   });
 
-  it('logout очищает refresh-cookie', async () => {
+  it('logout очищает обе куки', async () => {
     const { refreshCookie } = await login();
 
     const res = await logout(refreshCookie as string);
 
     expect(res.status).toBeLessThan(400);
     expectRefreshCookieCleared(res);
+    expectAccessCookieCleared(res);
   });
 
   it('logout идемпотентен без cookie', async () => {
@@ -164,6 +207,7 @@ describe('refresh-токены', () => {
 
     expect(res.status).toBeLessThan(400);
     expectRefreshCookieCleared(res);
+    expectAccessCookieCleared(res);
   });
 
   it('logout идемпотентен с неизвестным refresh-токеном', async () => {
@@ -175,6 +219,7 @@ describe('refresh-токены', () => {
 
     expect(res.status).toBeLessThan(400);
     expectRefreshCookieCleared(res);
+    expectAccessCookieCleared(res);
   });
 
   it('logout-all идемпотентен без cookie', async () => {
@@ -182,6 +227,7 @@ describe('refresh-токены', () => {
 
     expect(res.status).toBeLessThan(400);
     expectRefreshCookieCleared(res);
+    expectAccessCookieCleared(res);
   });
 
   it('после logout refresh-токен больше не работает', async () => {
