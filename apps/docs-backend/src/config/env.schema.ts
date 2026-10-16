@@ -12,6 +12,7 @@ export const envSchema = z.object({
   S3_ACCESS_KEY: z.string().default('user'),
   S3_SECRET_KEY: z.string().default('pass-secret'),
   JWT_ACCESS_SECRET: z.string().min(16),
+  CORS_ORIGIN: z.url().default('http://localhost:3000'),
 });
 
 export type Env = z.infer<typeof envSchema>;

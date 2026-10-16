@@ -22,7 +22,9 @@ import { createDocumentDto } from './dto/create-document.dto';
 import { documentResponseDto } from './dto/document-response.dto';
 import { updateDocumentDto } from './dto/update-document.dto';
 
-@Controller('organizations/:organizationId/documents')
+// Единый контур документа: список доступных, создание личного и операции над
+// одним документом (доступ = владелец или член организации документа).
+@Controller('documents')
 @UseGuards(JwtAuthGuard)
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
@@ -32,13 +34,11 @@ export class DocumentController {
   @ApiOkResponse({ standardSchema: documentResponseDto })
   async create(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
     @Body({ schema: createDocumentDto })
     { title }: z.infer<typeof createDocumentDto>,
   ) {
-    return this.documentService.create({
+    return this.documentService.createPersonal({
       title,
-      organizationId,
       actorId: user.sub,
     });
   }
@@ -46,14 +46,8 @@ export class DocumentController {
   @Get()
   @SerializeOptions({ schema: documentResponseDto })
   @ApiOkResponse({ standardSchema: documentResponseDto, isArray: true })
-  async getAll(
-    @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
-  ) {
-    return this.documentService.list({
-      organizationId,
-      actorId: user.sub,
-    });
+  async getAll(@CurrentUser() user: AccessTokenPayload) {
+    return this.documentService.listAccessible({ actorId: user.sub });
   }
 
   @Get('/:documentId')
@@ -61,14 +55,9 @@ export class DocumentController {
   @ApiOkResponse({ standardSchema: documentResponseDto })
   async get(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
     @Param('documentId') documentId: string,
   ) {
-    return this.documentService.get({
-      documentId,
-      organizationId,
-      actorId: user.sub,
-    });
+    return this.documentService.get({ documentId, actorId: user.sub });
   }
 
   @Patch('/:documentId')
@@ -77,14 +66,12 @@ export class DocumentController {
   @ApiOkResponse({ standardSchema: documentResponseDto })
   async update(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
     @Param('documentId') documentId: string,
     @Body({ schema: updateDocumentDto })
     { title }: z.infer<typeof updateDocumentDto>,
   ) {
     return this.documentService.update({
       documentId,
-      organizationId,
       actorId: user.sub,
       title,
     });
@@ -94,13 +81,8 @@ export class DocumentController {
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
     @Param('documentId') documentId: string,
   ) {
-    return this.documentService.remove({
-      documentId,
-      organizationId,
-      actorId: user.sub,
-    });
+    return this.documentService.remove({ documentId, actorId: user.sub });
   }
 }

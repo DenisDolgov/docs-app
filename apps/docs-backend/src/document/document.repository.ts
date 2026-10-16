@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
+import { desc, eq, getTableColumns, or, sql } from 'drizzle-orm';
 
 import { DATABASE, Database } from '../database/database.constants';
 import * as schema from '../database/schema';
@@ -38,6 +38,31 @@ export class DocumentRepository {
       where: { organizationId },
       orderBy: { updatedAt: 'desc' },
     });
+
+    return documents.map(toDocumentView);
+  }
+
+  // Все доступные пользователю документы: личные (владелец) и организационные
+  // (членство в организации документа). Собираем join-ом, чтобы обойтись одним
+  // запросом; `selectDistinct` страхует от дублей по membership.
+  public async listAccessible(userId: string): Promise<DocumentView[]> {
+    const documents = await this.db
+      .selectDistinct(getTableColumns(schema.documents))
+      .from(schema.documents)
+      .leftJoin(
+        schema.organizationMembers,
+        eq(
+          schema.documents.organizationId,
+          schema.organizationMembers.organizationId,
+        ),
+      )
+      .where(
+        or(
+          eq(schema.documents.createdBy, userId),
+          eq(schema.organizationMembers.userId, userId),
+        ),
+      )
+      .orderBy(desc(schema.documents.updatedAt));
 
     return documents.map(toDocumentView);
   }

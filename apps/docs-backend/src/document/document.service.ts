@@ -1,17 +1,13 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { ORGANIZATION_NOT_FOUND_ERROR } from '../organization/errors';
 import { OrganizationMemberRepository } from '../organization/organization-member.repository';
-import { canUpdateDocument } from './document.constants';
 import {
   CreateDocumentParams,
+  CreatePersonalDocumentParams,
   GetDocumentParams,
   GetOrganizationDocumentsParams,
+  ListAccessibleDocumentsParams,
   RemoveDocumentParams,
   UpdateDocumentParams,
 } from './document.models';
@@ -20,14 +16,12 @@ import { DOCUMENT_NOT_FOUND_ERROR } from './errors';
 
 @Injectable()
 export class DocumentService {
-  private readonly logger = new Logger(DocumentService.name);
-
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly organizationMemberRepository: OrganizationMemberRepository,
   ) {}
 
-  public async create({
+  public async createInOrganization({
     organizationId,
     actorId,
     title,
@@ -41,7 +35,17 @@ export class DocumentService {
     });
   }
 
-  public async list({
+  public async createPersonal({
+    actorId,
+    title,
+  }: CreatePersonalDocumentParams) {
+    return await this.documentRepository.create({
+      createdBy: actorId,
+      title,
+    });
+  }
+
+  public async listInOrganization({
     organizationId,
     actorId,
   }: GetOrganizationDocumentsParams) {
@@ -50,36 +54,22 @@ export class DocumentService {
     return this.documentRepository.listByOrganization(organizationId);
   }
 
-  public async get({ organizationId, actorId, documentId }: GetDocumentParams) {
-    await this.assertActorMember(organizationId, actorId);
-
-    const documentRecord = await this.documentRepository.findByIdInOrganization(
-      documentId,
-      organizationId,
-    );
-
-    if (!documentRecord) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
-
-    return documentRecord;
+  public async listAccessible({ actorId }: ListAccessibleDocumentsParams) {
+    return this.documentRepository.listAccessible(actorId);
   }
 
-  public async update({
-    organizationId,
-    actorId,
-    documentId,
-    title,
-  }: UpdateDocumentParams) {
-    await this.assertActorCanEdit(organizationId, actorId, documentId);
+  public async get({ actorId, documentId }: GetDocumentParams) {
+    return this.assertCanAccess(documentId, actorId);
+  }
+
+  public async update({ actorId, documentId, title }: UpdateDocumentParams) {
+    await this.assertCanAccess(documentId, actorId);
 
     return this.documentRepository.update(documentId, title);
   }
 
-  public async remove({
-    organizationId,
-    actorId,
-    documentId,
-  }: RemoveDocumentParams) {
-    await this.assertActorCanEdit(organizationId, actorId, documentId);
+  public async remove({ actorId, documentId }: RemoveDocumentParams) {
+    await this.assertCanAccess(documentId, actorId);
 
     return this.documentRepository.remove(documentId);
   }
@@ -96,25 +86,25 @@ export class DocumentService {
     return actorMember;
   }
 
-  private async assertActorCanEdit(
-    organizationId: string,
-    actorId: string,
-    documentId: string,
-  ) {
-    const memberRecord = await this.assertActorMember(organizationId, actorId);
-
-    const documentRecord = await this.documentRepository.findByIdInOrganization(
-      documentId,
-      organizationId,
-    );
+  // Доступ к документу = владелец или член организации документа.
+  // Отсутствие документа и отсутствие доступа отвечают одинаково (404),
+  // чтобы не раскрывать существование чужого документа.
+  private async assertCanAccess(documentId: string, actorId: string) {
+    const documentRecord = await this.documentRepository.findById(documentId);
 
     if (!documentRecord) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
 
-    if (
-      !canUpdateDocument(memberRecord.role) &&
-      documentRecord.createdBy !== actorId
-    ) {
-      throw new ForbiddenException();
+    if (documentRecord.createdBy === actorId) return documentRecord;
+
+    if (documentRecord.organizationId) {
+      const member = await this.organizationMemberRepository.findByOrgAndUser(
+        documentRecord.organizationId,
+        actorId,
+      );
+
+      if (member) return documentRecord;
     }
+
+    throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
   }
 }

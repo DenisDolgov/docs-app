@@ -7,7 +7,8 @@ export const documents = documentsSchema.table(
   {
     id: uuid().primaryKey().default(sql`uuidv7()`),
     title: text().notNull(),
-    organizationId: uuid().notNull(),
+    // Организация необязательна: личный документ живёт без неё, владелец — `createdBy`.
+    organizationId: uuid(),
     createdBy: uuid().notNull(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

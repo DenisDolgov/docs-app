@@ -6,11 +6,12 @@ import { OrganizationModule } from '../organization/organization.module';
 import { DocumentController } from './document.controller';
 import { DocumentRepository } from './document.repository';
 import { DocumentService } from './document.service';
+import { OrganizationDocumentController } from './organization-document.controller';
 
 @Module({
   imports: [DatabaseModule, AuthModule, OrganizationModule],
   providers: [DocumentRepository, DocumentService],
-  controllers: [DocumentController],
+  controllers: [DocumentController, OrganizationDocumentController],
   exports: [DocumentRepository],
 })
 export class DocumentModule {}

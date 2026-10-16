@@ -1,0 +1,1 @@
+ALTER TABLE "documents"."documents" ALTER COLUMN "organization_id" DROP NOT NULL;

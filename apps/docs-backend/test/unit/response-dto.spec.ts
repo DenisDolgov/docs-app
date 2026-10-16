@@ -17,6 +17,15 @@ describe('documentResponseDto (unit)', () => {
     expect(() => documentResponseDto.parse(documentBody)).not.toThrow();
   });
 
+  it('принимает личный документ без организации', () => {
+    const parsed = documentResponseDto.parse({
+      ...documentBody,
+      organizationId: null,
+    });
+
+    expect(parsed.organizationId).toBeNull();
+  });
+
   it('отсекает лишние поля, которые не входят в контракт', () => {
     const parsed = documentResponseDto.parse({
       ...documentBody,

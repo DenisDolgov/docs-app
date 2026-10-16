@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { DocumentRepository } from '../document/document.repository';
 import { OrganizationMemberRepository } from '../organization/organization-member.repository';
-import { CollabAccess, ResolveAccessParams } from './collab.models';
+import { ResolveAccessParams } from './collab.models';
 
 @Injectable()
 export class CollabAccessService {
@@ -11,24 +11,26 @@ export class CollabAccessService {
     private readonly organizationMemberRepository: OrganizationMemberRepository,
   ) {}
 
+  // Доступ к комнате = владелец или член организации документа.
+  // Нет документа и нет доступа отвечают одинаково — чтобы не раскрывать
+  // существование чужого документа.
   async resolveAccess({
     documentId,
     userId,
-  }: ResolveAccessParams): Promise<CollabAccess | null> {
+  }: ResolveAccessParams): Promise<boolean> {
     const document = await this.documentRepository.findById(documentId);
 
-    if (!document) return null;
+    if (!document) return false;
+
+    if (document.createdBy === userId) return true;
+
+    if (!document.organizationId) return false;
 
     const member = await this.organizationMemberRepository.findByOrgAndUser(
       document.organizationId,
       userId,
     );
 
-    if (!member) return null;
-
-    return {
-      organizationId: member.organizationId,
-      role: member.role,
-    };
+    return member !== null;
   }
 }

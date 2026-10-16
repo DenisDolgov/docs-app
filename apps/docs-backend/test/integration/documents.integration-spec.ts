@@ -47,7 +47,7 @@ describe('documents (integration)', () => {
     const owner = await register();
     const organization = await createOrganization(owner.id);
 
-    const document = await documentService.create({
+    const document = await documentService.createInOrganization({
       organizationId: organization.id,
       actorId: owner.id,
       title: 'Заметки',
@@ -59,6 +59,21 @@ describe('documents (integration)', () => {
       createdBy: owner.id,
     });
     expect(document.id).toEqual(expect.any(String));
+  });
+
+  it('создаёт личный документ без организации', async () => {
+    const owner = await register();
+
+    const document = await documentService.createPersonal({
+      actorId: owner.id,
+      title: 'Личное',
+    });
+
+    expect(document).toMatchObject({
+      organizationId: null,
+      title: 'Личное',
+      createdBy: owner.id,
+    });
   });
 
   it('создаёт таблицу documents.documents с нужными колонками', async () => {
@@ -76,6 +91,16 @@ order by column_name`,
       'title',
       'updated_at',
     ]);
+  });
+
+  it('делает organization_id необязательной колонкой', async () => {
+    const result = await db.execute<{ is_nullable: string }>(
+      sql`select is_nullable from information_schema.columns
+where table_schema = 'documents' and table_name = 'documents'
+  and column_name = 'organization_id'`,
+    );
+
+    expect(result.rows[0]?.is_nullable).toBe('YES');
   });
 
   it('индексирует documents по organization_id', async () => {
@@ -104,17 +129,17 @@ where tc.table_schema = 'documents' and tc.table_name = 'documents'
     const first = await createOrganization(owner.id);
     const second = await createOrganization(owner.id);
 
-    const document = await documentService.create({
+    const document = await documentService.createInOrganization({
       organizationId: first.id,
       actorId: owner.id,
       title: 'Первая',
     });
 
-    const firstList = await documentService.list({
+    const firstList = await documentService.listInOrganization({
       organizationId: first.id,
       actorId: owner.id,
     });
-    const secondList = await documentService.list({
+    const secondList = await documentService.listInOrganization({
       organizationId: second.id,
       actorId: owner.id,
     });
@@ -123,21 +148,68 @@ where tc.table_schema = 'documents' and tc.table_name = 'documents'
     expect(secondList.map((item) => item.id)).not.toContain(document.id);
   });
 
+  it('возвращает личные и организационные документы в общем списке', async () => {
+    const owner = await register();
+    const organization = await createOrganization(owner.id);
+
+    const personal = await documentService.createPersonal({
+      actorId: owner.id,
+      title: 'Личное',
+    });
+    const organizational = await documentService.createInOrganization({
+      organizationId: organization.id,
+      actorId: owner.id,
+      title: 'Общее',
+    });
+
+    const list = await documentService.listAccessible({ actorId: owner.id });
+    const ids = list.map((item) => item.id);
+
+    expect(ids).toContain(personal.id);
+    expect(ids).toContain(organizational.id);
+  });
+
+  it('не отдаёт чужой личный документ в списке', async () => {
+    const owner = await register();
+    const outsider = await register();
+
+    const personal = await documentService.createPersonal({
+      actorId: owner.id,
+      title: 'Личное',
+    });
+
+    const list = await documentService.listAccessible({ actorId: outsider.id });
+
+    expect(list.map((item) => item.id)).not.toContain(personal.id);
+  });
+
   it('не отдаёт документ, если он в другой организации', async () => {
     const owner = await register();
     const first = await createOrganization(owner.id);
     const second = await createOrganization(owner.id);
-
-    const document = await documentService.create({
+    const document = await documentService.createInOrganization({
       organizationId: first.id,
       actorId: owner.id,
       title: 'Первая',
     });
-
     await expect(
       documentService.get({
-        organizationId: second.id,
         actorId: owner.id,
+        documentId: document.id,
+      }),
+    ).resolves.toMatchObject({ id: document.id });
+
+    // Владелец уже имеет доступ; проверяем чужака с членством в другой организации.
+    const outsider = await register();
+    await organizationService.addMember({
+      organizationId: second.id,
+      actorId: owner.id,
+      email: outsider.email,
+      role: 'member',
+    });
+    await expect(
+      documentService.get({
+        actorId: outsider.id,
         documentId: document.id,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -146,20 +218,16 @@ where tc.table_schema = 'documents' and tc.table_name = 'documents'
   it('обновляет документ и обновляет updated_at', async () => {
     const owner = await register();
     const organization = await createOrganization(owner.id);
-
-    const document = await documentService.create({
+    const document = await documentService.createInOrganization({
       organizationId: organization.id,
       actorId: owner.id,
       title: 'Старое',
     });
-
     const updated = await documentService.update({
-      organizationId: organization.id,
       actorId: owner.id,
       documentId: document.id,
       title: 'Новое',
     });
-
     expect(updated.title).toBe('Новое');
     expect(updated.updatedAt >= document.updatedAt).toBe(true);
   });
@@ -167,24 +235,19 @@ where tc.table_schema = 'documents' and tc.table_name = 'documents'
   it('удаляет документ', async () => {
     const owner = await register();
     const organization = await createOrganization(owner.id);
-
-    const document = await documentService.create({
+    const document = await documentService.createInOrganization({
       organizationId: organization.id,
       actorId: owner.id,
       title: 'Временный',
     });
-
     await documentService.remove({
-      organizationId: organization.id,
       actorId: owner.id,
       documentId: document.id,
     });
-
     const result = await db.execute<{ count: string }>(
       sql`select count(*)::text as count from documents.documents
 where id = ${document.id}`,
     );
-
     expect(result.rows[0]?.count).toBe('0');
   });
 });

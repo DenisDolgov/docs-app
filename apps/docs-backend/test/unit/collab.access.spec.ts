@@ -5,6 +5,7 @@ import { CollabAccessService } from '../../src/collab/collab-access.service';
 import { DocumentRepository } from '../../src/document/document.repository';
 import { OrganizationMemberRepository } from '../../src/organization/organization-member.repository';
 
+const OWNER_ID = 'user-owner';
 const USER_ID = 'user-member';
 const OUTSIDER_ID = 'user-outsider';
 const ORGANIZATION_ID = 'org-1';
@@ -18,7 +19,16 @@ const organizationMemberRepository = {
   findByOrgAndUser: vi.fn(),
 };
 
-const document = { id: DOCUMENT_ID, organizationId: ORGANIZATION_ID };
+const document = {
+  id: DOCUMENT_ID,
+  organizationId: ORGANIZATION_ID,
+  createdBy: OWNER_ID,
+};
+const personalDocument = {
+  id: DOCUMENT_ID,
+  organizationId: null,
+  createdBy: OWNER_ID,
+};
 
 describe('CollabAccessService (unit)', () => {
   let service: CollabAccessService;
@@ -40,7 +50,19 @@ describe('CollabAccessService (unit)', () => {
     service = moduleRef.get(CollabAccessService);
   });
 
-  it('возвращает организацию и роль участника', async () => {
+  it('пускает владельца личного документа без проверки членства', async () => {
+    documentRepository.findById.mockResolvedValue(personalDocument);
+
+    await expect(
+      service.resolveAccess({ documentId: DOCUMENT_ID, userId: OWNER_ID }),
+    ).resolves.toBe(true);
+
+    expect(
+      organizationMemberRepository.findByOrgAndUser,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('пускает члена организации документа', async () => {
     documentRepository.findById.mockResolvedValue(document);
     organizationMemberRepository.findByOrgAndUser.mockResolvedValue({
       id: 'membership-1',
@@ -50,7 +72,7 @@ describe('CollabAccessService (unit)', () => {
 
     await expect(
       service.resolveAccess({ documentId: DOCUMENT_ID, userId: USER_ID }),
-    ).resolves.toEqual({ organizationId: ORGANIZATION_ID, role: 'member' });
+    ).resolves.toBe(true);
 
     expect(organizationMemberRepository.findByOrgAndUser).toHaveBeenCalledWith(
       ORGANIZATION_ID,
@@ -58,43 +80,32 @@ describe('CollabAccessService (unit)', () => {
     );
   });
 
-  it('возвращает null, если документа нет', async () => {
+  it('возвращает false, если документа нет', async () => {
     documentRepository.findById.mockResolvedValue(null);
 
     await expect(
       service.resolveAccess({ documentId: DOCUMENT_ID, userId: USER_ID }),
-    ).resolves.toBeNull();
+    ).resolves.toBe(false);
 
     expect(
       organizationMemberRepository.findByOrgAndUser,
     ).not.toHaveBeenCalled();
   });
 
-  it('возвращает null, если пользователь не участник организации', async () => {
+  it('возвращает false, если пользователь не участник организации', async () => {
     documentRepository.findById.mockResolvedValue(document);
     organizationMemberRepository.findByOrgAndUser.mockResolvedValue(null);
 
     await expect(
       service.resolveAccess({ documentId: DOCUMENT_ID, userId: OUTSIDER_ID }),
-    ).resolves.toBeNull();
+    ).resolves.toBe(false);
   });
 
-  it('не отличает чужой документ от несуществующего', async () => {
-    documentRepository.findById.mockResolvedValue(null);
+  it('возвращает false для чужого личного документа', async () => {
+    documentRepository.findById.mockResolvedValue(personalDocument);
 
-    const missing = await service.resolveAccess({
-      documentId: 'missing',
-      userId: USER_ID,
-    });
-
-    documentRepository.findById.mockResolvedValue(document);
-    organizationMemberRepository.findByOrgAndUser.mockResolvedValue(null);
-    const foreign = await service.resolveAccess({
-      documentId: DOCUMENT_ID,
-      userId: OUTSIDER_ID,
-    });
-
-    expect(missing).toBeNull();
-    expect(foreign).toBeNull();
+    await expect(
+      service.resolveAccess({ documentId: DOCUMENT_ID, userId: OUTSIDER_ID }),
+    ).resolves.toBe(false);
   });
 });
