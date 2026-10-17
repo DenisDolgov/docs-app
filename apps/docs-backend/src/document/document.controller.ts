@@ -1,4 +1,10 @@
 import {
+  createDocumentDto,
+  documentResponseDto,
+  updateDocumentDto,
+} from '@docs-app/contracts/document';
+import { documentRoute } from '@docs-app/contracts/document/routes';
+import {
   Body,
   Controller,
   Delete,
@@ -11,27 +17,24 @@ import {
   SerializeOptions,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { z } from 'zod';
 
 import { AccessTokenPayload } from '../auth/auth.models';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentService } from './document.service';
-import { createDocumentDto } from './dto/create-document.dto';
-import { documentResponseDto } from './dto/document-response.dto';
-import { updateDocumentDto } from './dto/update-document.dto';
 
 // Единый контур документа: список доступных, создание личного и операции над
 // одним документом (доступ = владелец или член организации документа).
-@Controller('documents')
+@Controller(documentRoute.base)
 @UseGuards(JwtAuthGuard)
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post()
   @SerializeOptions({ schema: documentResponseDto })
-  @ApiOkResponse({ standardSchema: documentResponseDto })
+  @ApiCreatedResponse({ standardSchema: documentResponseDto })
   async create(
     @CurrentUser() user: AccessTokenPayload,
     @Body({ schema: createDocumentDto })
@@ -50,23 +53,23 @@ export class DocumentController {
     return this.documentService.listAccessible({ actorId: user.sub });
   }
 
-  @Get('/:documentId')
+  @Get(documentRoute.byIdPattern)
   @SerializeOptions({ schema: documentResponseDto })
   @ApiOkResponse({ standardSchema: documentResponseDto })
   async get(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('documentId') documentId: string,
+    @Param(documentRoute.param) documentId: string,
   ) {
     return this.documentService.get({ documentId, actorId: user.sub });
   }
 
-  @Patch('/:documentId')
+  @Patch(documentRoute.byIdPattern)
   @HttpCode(HttpStatus.OK)
   @SerializeOptions({ schema: documentResponseDto })
   @ApiOkResponse({ standardSchema: documentResponseDto })
   async update(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('documentId') documentId: string,
+    @Param(documentRoute.param) documentId: string,
     @Body({ schema: updateDocumentDto })
     { title }: z.infer<typeof updateDocumentDto>,
   ) {
@@ -77,11 +80,11 @@ export class DocumentController {
     });
   }
 
-  @Delete('/:documentId')
+  @Delete(documentRoute.byIdPattern)
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('documentId') documentId: string,
+    @Param(documentRoute.param) documentId: string,
   ) {
     return this.documentService.remove({ documentId, actorId: user.sub });
   }

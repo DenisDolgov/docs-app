@@ -10,7 +10,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @docs-app/contracts build && pnpm -r typecheck",
     "prepare": "lefthook install",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",

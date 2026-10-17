@@ -1,4 +1,5 @@
 import { clearTimeout } from 'node:timers';
+import { COLLAB_MESSAGE_SYNC } from '@docs-app/contracts/collab/protocol';
 import { encoding } from 'lib0';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
@@ -7,7 +8,6 @@ import * as Y from 'yjs';
 import {
   COLLAB_FLUSH_INTERVAL,
   COLLAB_HYDRATION_ORIGIN,
-  COLLAB_MESSAGE_SYNC,
 } from './collab.constants';
 import { CollabConnection } from './collab.models';
 import { encodeAwarenessMessage } from './collab.protocol';

@@ -1,12 +1,19 @@
 // Тонкий клиент нашего REST API. Access- и refresh-токены живут в httpOnly-куках,
 // которые браузер шлёт сам при `credentials: 'include'`; JS их не читает.
 
+import type { User } from '@docs-app/contracts/auth';
+import { authPaths } from '@docs-app/contracts/auth/routes';
+import type { ProblemDetails } from '@docs-app/contracts/http';
+
 import { API_URL } from './auth-config';
 import {
   refreshSession,
   resetSessionExpired,
   SessionExpired,
 } from './auth-session';
+
+export type { DocumentDto } from '@docs-app/contracts/document';
+export type { OrganizationDto } from '@docs-app/contracts/organization';
 
 export {
   ACCESS_COOKIE_NAME,
@@ -20,52 +27,50 @@ export {
   setSessionExpiredHandler,
   TransientError,
 } from './auth-session';
+export type { User };
 
-export type OrganizationRole = 'owner' | 'admin' | 'member';
-
-export interface User {
-  id: string;
-  email: string;
-}
-
-export interface DocumentDto {
-  id: string;
-  organizationId: string | null;
-  createdBy: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrganizationDto {
-  id: string;
-  name: string;
-  role: OrganizationRole;
-}
-
+// Ошибка API несёт разобранный problem+json (RFC 9457).
 export class ApiError extends Error {
   public readonly status: number;
+  public readonly problem: ProblemDetails;
 
-  constructor(status: number, message: string) {
-    super(message);
+  constructor(problem: ProblemDetails) {
+    super(problem.detail ?? problem.title);
     this.name = 'ApiError';
-    this.status = status;
+    this.status = problem.status;
+    this.problem = problem;
   }
 }
 
-const readErrorMessage = async (response: Response): Promise<string> => {
-  try {
-    const body = (await response.json()) as { message?: string | string[] };
-    const { message } = body;
+const fallbackProblem = (status: number): ProblemDetails => ({
+  type: 'about:blank',
+  title: `Ошибка ${status}`,
+  status,
+});
 
-    if (Array.isArray(message)) return message.join(', ');
-    if (typeof message === 'string') return message;
+const readProblem = async (response: Response): Promise<ProblemDetails> => {
+  try {
+    const body = (await response.json()) as Partial<ProblemDetails>;
+
+    if (typeof body.title === 'string' && typeof body.status === 'number') {
+      return {
+        type: body.type ?? 'about:blank',
+        title: body.title,
+        status: body.status,
+        ...(body.detail ? { detail: body.detail } : {}),
+        ...(body.instance ? { instance: body.instance } : {}),
+        ...(body.errors ? { errors: body.errors } : {}),
+      };
+    }
   } catch {
     // тело не JSON — отдадим статус
   }
 
-  return `Запрос завершился с кодом ${response.status}`;
+  return fallbackProblem(response.status);
 };
+
+const toApiError = async (response: Response): Promise<ApiError> =>
+  new ApiError(await readProblem(response));
 
 // Обёртка над fetch: при 401 один раз обновляет сессию и повторяет запрос.
 // Возвращает «сырой» Response — вызывающий решает, как читать.
@@ -107,7 +112,7 @@ export const apiJson = async <T>(
   const response = await apiFetch(path, init);
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response));
+    throw await toApiError(response);
   }
 
   if (response.status === 204) return undefined as T;
@@ -116,7 +121,7 @@ export const apiJson = async <T>(
 };
 
 export const login = async (email: string, password: string): Promise<User> => {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const response = await fetch(`${API_URL}${authPaths.login}`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'content-type': 'application/json' },
@@ -124,7 +129,7 @@ export const login = async (email: string, password: string): Promise<User> => {
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response));
+    throw await toApiError(response);
   }
 
   resetSessionExpired();
@@ -136,7 +141,7 @@ export const register = async (
   email: string,
   password: string,
 ): Promise<User> => {
-  const response = await fetch(`${API_URL}/auth/register`, {
+  const response = await fetch(`${API_URL}${authPaths.register}`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'content-type': 'application/json' },
@@ -144,21 +149,21 @@ export const register = async (
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readErrorMessage(response));
+    throw await toApiError(response);
   }
 
   return (await response.json()) as User;
 };
 
 export const logout = async (): Promise<void> => {
-  await fetch(`${API_URL}/auth/logout`, {
+  await fetch(`${API_URL}${authPaths.logout}`, {
     method: 'POST',
     credentials: 'include',
   }).catch(() => undefined);
 };
 
 export const fetchMe = async (): Promise<User> => {
-  return apiJson<User>('/auth/me');
+  return apiJson<User>(authPaths.me);
 };
 
 // Восстановление сессии при загрузке страницы: `apiFetch` сам сходит в refresh

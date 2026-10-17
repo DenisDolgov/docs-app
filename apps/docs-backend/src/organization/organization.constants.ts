@@ -1,12 +1,7 @@
-import { type OrganizationRole } from '../database/schema/organizations';
+import type { OrganizationRole } from '@docs-app/contracts/organization';
 
-// Роли, которые можно выдать приглашением (owner — только через передачу владения).
-export const assignableOrganizationRoles = [
-  'admin',
-  'member',
-] as const satisfies readonly OrganizationRole[];
-
-// Роли, которым разрешено управлять участниками.
+// Роли, которым разрешено управлять участниками. Доменная политика, не wire —
+// поэтому живёт на бэкенде, а не в контракте.
 const memberManagerRoles = [
   'admin',
   'owner',

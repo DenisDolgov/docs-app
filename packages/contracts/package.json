@@ -1,0 +1,64 @@
+{
+  "name": "@docs-app/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "default": "./dist/http/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "default": "./dist/auth/index.js"
+    },
+    "./auth/routes": {
+      "types": "./dist/auth/routes.d.ts",
+      "default": "./dist/auth/routes.js"
+    },
+    "./organization": {
+      "types": "./dist/organization/index.d.ts",
+      "default": "./dist/organization/index.js"
+    },
+    "./organization/routes": {
+      "types": "./dist/organization/routes.d.ts",
+      "default": "./dist/organization/routes.js"
+    },
+    "./document": {
+      "types": "./dist/document/index.d.ts",
+      "default": "./dist/document/index.js"
+    },
+    "./document/routes": {
+      "types": "./dist/document/routes.d.ts",
+      "default": "./dist/document/routes.js"
+    },
+    "./collab": {
+      "types": "./dist/collab/index.d.ts",
+      "default": "./dist/collab/index.js"
+    },
+    "./collab/protocol": {
+      "types": "./dist/collab/protocol.d.ts",
+      "default": "./dist/collab/protocol.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

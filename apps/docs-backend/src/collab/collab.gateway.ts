@@ -1,4 +1,15 @@
 import type { IncomingMessage } from 'node:http';
+import {
+  COLLAB_CLOSE_ACCESS_DENIED,
+  COLLAB_CLOSE_DOCUMENT_ID_REQUIRED,
+  COLLAB_CLOSE_FORBIDDEN_ORIGIN,
+  COLLAB_CLOSE_MALFORMED_MESSAGE,
+  COLLAB_CLOSE_SETUP_FAILED,
+  COLLAB_CLOSE_UNAUTHORIZED,
+  COLLAB_DOCUMENT_QUERY_PARAM,
+  COLLAB_MESSAGE_AWARENESS,
+  COLLAB_WS_PATH,
+} from '@docs-app/contracts/collab/protocol';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -9,7 +20,6 @@ import {
 
 import { ACCESS_COOKIE_NAME } from '../auth/auth.constants';
 import { AccessTokenPayload } from '../auth/auth.models';
-import { COLLAB_MESSAGE_AWARENESS, COLLAB_WS_PATH } from './collab.constants';
 import { CollabConnection } from './collab.models';
 import {
   applyAwarenessMessage,
@@ -58,23 +68,26 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ): Promise<void> {
     try {
       const url = new URL(request.url ?? '/', 'http://localhost');
-      const documentId = url.searchParams.get('documentId');
+      const documentId = url.searchParams.get(COLLAB_DOCUMENT_QUERY_PARAM);
       const origin = request.headers.origin;
 
       // Origin проверяем и на WS-хендшейке: cookie шлётся браузером
       // автоматически, поэтому CSWSH был бы возможен без этой сверки.
       if (origin && origin !== this.configService.get<string>('CORS_ORIGIN')) {
-        return client.close(4003, 'Forbidden');
+        return client.close(COLLAB_CLOSE_FORBIDDEN_ORIGIN, 'Forbidden');
       }
 
       if (!documentId) {
-        return client.close(4000, 'Document ID is required');
+        return client.close(
+          COLLAB_CLOSE_DOCUMENT_ID_REQUIRED,
+          'Document ID is required',
+        );
       }
 
       const token = readCookie(request.headers.cookie, ACCESS_COOKIE_NAME);
 
       if (!token) {
-        return client.close(4001, 'Unauthorized');
+        return client.close(COLLAB_CLOSE_UNAUTHORIZED, 'Unauthorized');
       }
 
       let user: AccessTokenPayload;
@@ -82,7 +95,7 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
       try {
         user = await this.jwtService.verifyAsync<AccessTokenPayload>(token);
       } catch {
-        return client.close(4001, 'Unauthorized');
+        return client.close(COLLAB_CLOSE_UNAUTHORIZED, 'Unauthorized');
       }
 
       try {
@@ -93,10 +106,10 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // нет доступа и нет документа отвечают одинаково — чтобы не раскрывать существование чужого документа
         if (!access) {
-          return client.close(4003, 'Document not found');
+          return client.close(COLLAB_CLOSE_ACCESS_DENIED, 'Document not found');
         }
       } catch {
-        return client.close(4003, 'Document not found');
+        return client.close(COLLAB_CLOSE_ACCESS_DENIED, 'Document not found');
       }
 
       client.documentId = documentId;
@@ -122,7 +135,7 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
             if (reply) client.send(reply);
           }
         } catch {
-          client.close(1003, 'Malformed message');
+          client.close(COLLAB_CLOSE_MALFORMED_MESSAGE, 'Malformed message');
         }
       });
 
@@ -134,7 +147,7 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ]),
       );
     } catch {
-      client.close(1011, 'Connection setup failed');
+      client.close(COLLAB_CLOSE_SETUP_FAILED, 'Connection setup failed');
     }
   }
 

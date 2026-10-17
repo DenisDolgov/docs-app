@@ -1,4 +1,4 @@
-import { OrganizationRole } from '../database/schema/organizations';
+import type { OrganizationRole } from '@docs-app/contracts/organization';
 
 export interface ActorInOrganization {
   organizationId: string;

@@ -1,3 +1,14 @@
+import {
+  type AwarenessChanges,
+  COLLAB_CLOSE_ACCESS_DENIED,
+  COLLAB_CLOSE_DOCUMENT_ID_REQUIRED,
+  COLLAB_CLOSE_FORBIDDEN_ORIGIN,
+  COLLAB_CLOSE_UNAUTHORIZED,
+  COLLAB_DOCUMENT_QUERY_PARAM,
+  COLLAB_MESSAGE_AWARENESS,
+  COLLAB_MESSAGE_SYNC,
+  COLLAB_WS_PATH,
+} from '@docs-app/contracts/collab/protocol';
 import * as decoding from 'lib0/decoding';
 import * as encoding from 'lib0/encoding';
 import {
@@ -8,19 +19,20 @@ import {
 import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 
-// Протокол совпадает с бэкендом (`collab.protocol.ts`).
-const MESSAGE_SYNC = 0;
-const MESSAGE_AWARENESS = 1;
+// Протокол — единый источник в `@docs-app/contracts/collab/protocol`.
+const MESSAGE_SYNC = COLLAB_MESSAGE_SYNC;
+const MESSAGE_AWARENESS = COLLAB_MESSAGE_AWARENESS;
 const REMOTE_ORIGIN = 'remote';
 
-// Коды отказа на рукопожатии
+// Коды отказа на рукопожатии (значения — из контракта).
 const CLOSE_REASONS: Record<number, string> = {
-  4000: 'Неизвестный документ',
-  4001: 'Сессия истекла',
-  4003: 'Нет доступа',
+  [COLLAB_CLOSE_DOCUMENT_ID_REQUIRED]: 'Неизвестный документ',
+  [COLLAB_CLOSE_UNAUTHORIZED]: 'Сессия истекла',
+  [COLLAB_CLOSE_ACCESS_DENIED]: 'Нет доступа',
+  [COLLAB_CLOSE_FORBIDDEN_ORIGIN]: 'Нет доступа',
 };
 
-const SESSION_EXPIRED_CODE = 4001;
+const SESSION_EXPIRED_CODE = COLLAB_CLOSE_UNAUTHORIZED;
 
 const MAX_RECONNECT_DELAY = 15000;
 
@@ -78,8 +90,8 @@ export class CollabProvider {
 
     this.options.onStatusChange?.('connecting');
 
-    const url = new URL('/ws', this.options.url);
-    url.searchParams.set('documentId', this.options.documentId);
+    const url = new URL(COLLAB_WS_PATH, this.options.url);
+    url.searchParams.set(COLLAB_DOCUMENT_QUERY_PARAM, this.options.documentId);
 
     const socket = new WebSocket(url);
     socket.binaryType = 'arraybuffer';
@@ -107,8 +119,8 @@ export class CollabProvider {
   };
 
   private handleAwarenessUpdate = (
-    // fixMe дублируем тип на бэкенде, перенести в общую библиотеку
-    changes: { added: number[]; updated: number[]; removed: number[] },
+    // `y-protocols` не экспортирует тип наблюдателя — держим его в контракте.
+    changes: AwarenessChanges,
     origin: unknown,
   ) => {
     if (origin === REMOTE_ORIGIN) return;

@@ -1,7 +1,6 @@
+import { userResponseDto } from '@docs-app/contracts/auth';
+import { documentResponseDto } from '@docs-app/contracts/document';
 import { describe, expect, it } from 'vitest';
-
-import { userResponseDto } from '../../src/auth/dto/user-response.dto';
-import { documentResponseDto } from '../../src/document/dto/document-response.dto';
 
 const documentBody = {
   id: '11111111-1111-7111-8111-111111111111',

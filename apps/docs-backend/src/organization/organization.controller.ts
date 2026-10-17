@@ -1,19 +1,36 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  addMemberDto,
+  createdOrganizationResponseDto,
+  createOrganizationDto,
+  organizationMemberResponseDto,
+  organizationResponseDto,
+} from '@docs-app/contracts/organization';
+import { organizationRoute } from '@docs-app/contracts/organization/routes';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  SerializeOptions,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { z } from 'zod';
 
 import { AccessTokenPayload } from '../auth/auth.models';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { addMemberDto } from './dto/add-member.dto';
-import { createOrganizationDto } from './dto/create-organization.dto';
 import { OrganizationService } from './organization.service';
 
-@Controller('organizations')
+@Controller(organizationRoute.base)
 @UseGuards(JwtAuthGuard)
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Post()
+  @SerializeOptions({ schema: createdOrganizationResponseDto })
+  @ApiCreatedResponse({ standardSchema: createdOrganizationResponseDto })
   async create(
     @CurrentUser() user: AccessTokenPayload,
     @Body({ schema: createOrganizationDto })
@@ -26,14 +43,18 @@ export class OrganizationController {
   }
 
   @Get()
+  @SerializeOptions({ schema: organizationResponseDto })
+  @ApiOkResponse({ standardSchema: organizationResponseDto, isArray: true })
   async getAll(@CurrentUser() user: AccessTokenPayload) {
     return this.organizationService.listForUser(user.sub);
   }
 
-  @Post('/:organizationId/members')
+  @Post(organizationRoute.membersPattern)
+  @SerializeOptions({ schema: organizationMemberResponseDto })
+  @ApiCreatedResponse({ standardSchema: organizationMemberResponseDto })
   async addMember(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
+    @Param(organizationRoute.param) organizationId: string,
     @Body({ schema: addMemberDto }) {
       email,
       role,
@@ -47,10 +68,15 @@ export class OrganizationController {
     });
   }
 
-  @Get('/:organizationId/members')
+  @Get(organizationRoute.membersPattern)
+  @SerializeOptions({ schema: organizationMemberResponseDto })
+  @ApiOkResponse({
+    standardSchema: organizationMemberResponseDto,
+    isArray: true,
+  })
   getMembers(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
+    @Param(organizationRoute.param) organizationId: string,
   ) {
     return this.organizationService.listMembers({
       organizationId,

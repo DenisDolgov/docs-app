@@ -1,14 +1,12 @@
-import {
-  Module,
-  StandardSchemaSerializerInterceptor,
-  StandardSchemaValidationPipe,
-} from '@nestjs/common';
+import { Module, StandardSchemaSerializerInterceptor } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module';
 import { CollabModule } from './collab/collab.module';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { AppValidationPipe } from './common/app-validation.pipe';
 import { OriginGuard } from './common/origin.guard';
 import { envSchema } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
@@ -49,7 +47,11 @@ import { StorageModule } from './storage/storage.module';
     },
     {
       provide: APP_PIPE,
-      useClass: StandardSchemaValidationPipe,
+      useClass: AppValidationPipe,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
     {
       provide: APP_INTERCEPTOR,

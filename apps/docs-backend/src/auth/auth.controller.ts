@@ -1,4 +1,10 @@
 import {
+  loginDto,
+  registerDto,
+  userResponseDto,
+} from '@docs-app/contracts/auth';
+import { authRoute } from '@docs-app/contracts/auth/routes';
+import {
   Body,
   Controller,
   Get,
@@ -11,7 +17,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
 import { z } from 'zod';
 
@@ -24,22 +30,21 @@ import {
 import { AccessTokenPayload } from './auth.models';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
-import { loginDto } from './dto/login.dto';
-import { registerDto } from './dto/register.dto';
-import { userResponseDto } from './dto/user-response.dto';
 import { UNAUTHORIZED_ERROR } from './errors';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
-@Controller('auth')
+@Controller(authRoute.base)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
+  @Post(authRoute.register)
+  @SerializeOptions({ schema: userResponseDto })
+  @ApiCreatedResponse({ standardSchema: userResponseDto })
   register(@Body({ schema: registerDto }) body: z.infer<typeof registerDto>) {
     return this.authService.register(body);
   }
 
-  @Post('login')
+  @Post(authRoute.login)
   @HttpCode(HttpStatus.OK)
   async login(
     @Body({ schema: loginDto }) body: z.infer<typeof loginDto>,
@@ -51,7 +56,7 @@ export class AuthController {
     this.setRefreshTokenCookie(res, refreshToken);
   }
 
-  @Post('refresh')
+  @Post(authRoute.refresh)
   @HttpCode(HttpStatus.OK)
   async refresh(
     @Req() req: Request,
@@ -77,7 +82,7 @@ export class AuthController {
     }
   }
 
-  @Post('logout')
+  @Post(authRoute.logout)
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies[REFRESH_COOKIE_NAME];
@@ -89,7 +94,7 @@ export class AuthController {
     this.clearAuthCookies(res);
   }
 
-  @Post('logout-all')
+  @Post(authRoute.logoutAll)
   @HttpCode(HttpStatus.OK)
   async logoutAll(
     @Req() req: Request,
@@ -104,7 +109,7 @@ export class AuthController {
     this.clearAuthCookies(res);
   }
 
-  @Get('me')
+  @Get(authRoute.me)
   @UseGuards(JwtAuthGuard)
   @SerializeOptions({ schema: userResponseDto })
   @ApiOkResponse({ standardSchema: userResponseDto })

@@ -1,5 +1,6 @@
 'use client';
 
+import { organizationRoute } from '@docs-app/contracts/organization/routes';
 import {
   createContext,
   type ReactNode,
@@ -40,7 +41,9 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const refreshOrganizations = useCallback(async () => {
-    const list = await apiJson<OrganizationDto[]>('/organizations');
+    const list = await apiJson<OrganizationDto[]>(
+      organizationRoute.paths.collection,
+    );
     setOrganizations(list);
     return;
   }, []);

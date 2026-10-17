@@ -9,33 +9,46 @@
 
 | Что это | Где | Содержит | Пример |
 | --- | --- | --- | --- |
-| Схема БД | `database/schema/<entity>.ts` | таблицы Drizzle, `pgEnum`, выведенные union-типы | `organizations`, `organizationRoleEnum`, `OrganizationRole` |
-| Вход HTTP | `<module>/dto/<name>.dto.ts` | zod-схема (`z.object`) | `addMemberDto` |
-| Выход HTTP | `<module>/dto/<name>-response.dto.ts` | zod-схема разрешённой формы ответа | `documentResponseDto` |
+| Схема БД | `database/schema/<entity>.ts` | таблицы Drizzle, `pgEnum` (выводится из набора контракта) | `organizations`, `organizationRoleEnum` |
+| Вход HTTP | `packages/contracts/src/<module>/` | zod-схема (`z.object`) | `addMemberDto` |
+| Выход HTTP | `packages/contracts/src/<module>/` | zod-схема разрешённой формы ответа | `documentResponseDto` |
+| Маршруты HTTP | `packages/contracts/src/<module>/routes.ts` | сегменты/параметры для декораторов и полные пути клиента | `documentRoute`, `authPaths` |
 | Домен / приложение | `<module>/<module>.models.ts` | команды, read-модели, порты, транспортные типы модуля | `AddMemberParams`, `OrganizationMemberListItem` |
-| Значения и токены | `<module>/<module>.constants.ts` | `Symbol`-токены DI, TTL, наборы допустимых значений | `DATABASE`, `assignableOrganizationRoles` |
+| Значения и токены | `<module>/<module>.constants.ts` | `Symbol`-токены DI, TTL, внутренние тайминги | `DATABASE`, `COLLAB_SAVE_INTERVAL` |
 | Тексты ошибок | `<module>/errors.ts` | строковые константы сообщений | `USER_NOT_FOUND_ERROR` |
 | Глобальное расширение | `types/index.d.ts` | только `declare global` | `Express.Request` |
 | Env | `config/env.schema.ts` | zod-схема окружения | `envSchema` |
 
-**Правило колокации.** Типы живут рядом с модулем-владельцем. Общей папки
-`types/` для доменных типов нет — там только глобальные амбиенты
-(`declare global`). Если тип нужен двум модулям, он либо принадлежит одному из
-них и импортируется, либо переезжает в `database/schema` (если это про данные).
+**Правило колокации.** Доменные типы и внутренние константы живут рядом с
+модулем-владельцем. Общей папки `types/` для доменных типов нет — там только
+глобальные амбиенты (`declare global`). Если тип нужен двум модулям, он либо
+принадлежит одному из них и импортируется, либо переезжает в `database/schema`
+(если это про данные).
+
+**Исключение — wire-контракт.** Всё, что пересекает границу HTTP или WS (схемы
+запросов/ответов, шаблоны путей, opcodes и коды закрытия), живёт в
+`packages/contracts` (`@docs-app/contracts/<module>`), а модуль его импортирует.
+Модуль владеет только тем, что не выходит наружу.
 
 ## Правила
 
-1. **Выводи, не дублируй.** Единственный источник истины для доменного
-   перечисления — `pgEnum` в схеме. Union-тип выводим из него:
+1. **Выводи, не дублируй.** Источник истины для wire-перечисления — контракт.
+   Набор объявлен в `packages/contracts/src/<module>`, а `pgEnum` выводится из
+   него:
    ```ts
-   export const organizationRoleEnum = pgEnum('organization_role', ['owner', 'admin', 'member']);
-   export type OrganizationRole = (typeof organizationRoleEnum.enumValues)[number];
+   // packages/contracts/src/organization/roles.ts
+   export const organizationRoles = ['owner', 'admin', 'member'] as const;
+   export type OrganizationRole = (typeof organizationRoles)[number];
+
+   // database/schema/organizations.ts
+   export const organizationRoleEnum = pgEnum('organization_role', organizationRoles);
    ```
-   DTO и сервис переиспользуют этот тип, а не переписывают строки заново.
+   DTO, схема и сервис переиспользуют этот тип, а не переписывают строки заново.
 
 2. **Наборы значений — `as const satisfies`.** Константы-наборы объявляем
    неизменяемыми литеральными кортежами и сверяем с доменным типом:
    ```ts
+   // packages/contracts/src/organization/roles.ts
    export const assignableOrganizationRoles = ['admin', 'member'] as const satisfies readonly OrganizationRole[];
    ```
    Так `z.enum(...)` получает точные литералы, а не `string[]`, и опечатка
@@ -48,13 +61,13 @@
    - выход/чтение — `<Сущность>ListItem` / `<Сущность>View`;
    - сквозной контекст — существительное (`ActorInOrganization`).
 
-4. **DTO не пересекает границу слоя.** DTO (zod-схема) живёт только в
-   контроллере. Сервис и репозитории принимают типы из `.models.ts`, а не
-   схему DTO. Если поля совпадают — это нормально: домен не должен зависеть от
-   формы HTTP-запроса.
+4. **DTO не пересекает границу слоя.** DTO (zod-схема) живёт в контракте и
+   используется только контроллером. Сервис и репозитории принимают типы из
+   `.models.ts`, а не схему DTO. Если поля совпадают — это нормально: домен не
+   должен зависеть от формы HTTP-запроса.
 
 5. **`.constants.ts` — это значения, а не типы.** Если константе нужен тип —
-   импортируй его из `database/schema`, не объявляй новый здесь.
+   импортируй его из `database/schema` или из контракта, не объявляй новый здесь.
 
 6. **Транспортные типы модуля** (например payload access-JWT —
    `AuthenticatedRequest`) живут в `<module>.models.ts`; файл `types/index.d.ts`
@@ -67,12 +80,13 @@
    `docs/backend-tech-debt.md` → «Сериализация ответов».
 
 8. **Вход валидирует схема на параметре, а не пайп.** Контроллер навешивает
-   zod-схему прямо на параметр: `@Body({ schema: registerDto })`. Глобальный
-   `StandardSchemaValidationPipe` (Nest 12) валидирует по этой метадане, а
-   `@nestjs/swagger` берёт её же в OpenAPI — одно описание на вход и доку.
+   zod-схему (из контракта) прямо на параметр: `@Body({ schema: registerDto })`.
+   Глобальный `AppValidationPipe` (наследник `StandardSchemaValidationPipe`,
+   Nest 12) валидирует по этой метадане, а `@nestjs/swagger` берёт её же в
+   OpenAPI — одно описание на вход и доку.
 
 9. **Ответ описывает response-DTO, а не форма из репозитория.** Форма ответа —
-   отдельная zod-схема в `<module>/dto/<name>-response.dto.ts`. Рантайм-гарантию
+   отдельная zod-схема в контракте (`packages/contracts/src/<module>/`). Рантайм-гарантию
    дают `@SerializeOptions({ schema })` на хендлере и глобальный
    `StandardSchemaSerializerInterceptor`: результат хендлера прогоняется через
    схему, лишнее отсекается. Документацию ответа даёт `@ApiOkResponse({
@@ -88,6 +102,19 @@
 11. **Текущий пользователь — `@CurrentUser()`.** Контроллер не тащит `@Req()` и
     не лезет в `req.user`; payload из гуарда достаёт параметрический декоратор
     `src/auth/current-user.decorator.ts`.
+
+12. **Ошибки — один конверт `problem+json` (RFC 9457).** Любой выброшенный
+    `HttpException` и непредвиденная ошибка проходят через глобальный
+    `AllExceptionsFilter` (`src/common/all-exceptions.filter.ts`) и отдаются как
+    `application/problem+json`: `title` — фраза HTTP-статуса, конкретика — в
+    `detail`, полевые ошибки валидации — в `errors: [{ path, message }]`.
+    Непредвиденные ошибки логируются и наружу отдают безликий 500 без
+    внутренностей. Ошибки входа контроллер не переписывает: сообщения берутся из
+    `<module>/errors.ts`. Схема конверта — `@docs-app/contracts/http`.
+
+13. **Валидация входа — поле `errors`.** Пайп `AppValidationPipe` (наследник
+    `StandardSchemaValidationPipe`) вместо плоского списка строк отдаёт
+    структурированные `{ path, message }`, которые фильтр кладёт в `errors`.
 
 ## Схема БД
 

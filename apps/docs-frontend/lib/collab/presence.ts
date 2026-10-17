@@ -1,3 +1,7 @@
+import type { Presence } from '@docs-app/contracts/collab';
+
+export type { Presence };
+
 const hashString = (value: string): number => {
   let hash = 0;
 
@@ -8,11 +12,6 @@ const hashString = (value: string): number => {
 
   return Math.abs(hash);
 };
-
-export interface Presence {
-  name: string;
-  color: string;
-}
 
 export const presenceFromEmail = (email: string): Presence => {
   const color = (hashString(email) % 0xffffff).toString(16).padStart(6, '0');

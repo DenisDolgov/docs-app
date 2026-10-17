@@ -1,4 +1,9 @@
 import {
+  createDocumentDto,
+  documentResponseDto,
+} from '@docs-app/contracts/document';
+import { organizationDocumentRoute } from '@docs-app/contracts/document/routes';
+import {
   Body,
   Controller,
   Get,
@@ -7,28 +12,26 @@ import {
   SerializeOptions,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { z } from 'zod';
 
 import { AccessTokenPayload } from '../auth/auth.models';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentService } from './document.service';
-import { createDocumentDto } from './dto/create-document.dto';
-import { documentResponseDto } from './dto/document-response.dto';
 
 // Арендный список организации: только чтение и создание внутри организации.
-@Controller('organizations/:organizationId/documents')
+@Controller(organizationDocumentRoute.base)
 @UseGuards(JwtAuthGuard)
 export class OrganizationDocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Post()
   @SerializeOptions({ schema: documentResponseDto })
-  @ApiOkResponse({ standardSchema: documentResponseDto })
+  @ApiCreatedResponse({ standardSchema: documentResponseDto })
   async create(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
+    @Param(organizationDocumentRoute.organizationParam) organizationId: string,
     @Body({ schema: createDocumentDto })
     { title }: z.infer<typeof createDocumentDto>,
   ) {
@@ -44,7 +47,7 @@ export class OrganizationDocumentController {
   @ApiOkResponse({ standardSchema: documentResponseDto, isArray: true })
   async getAll(
     @CurrentUser() user: AccessTokenPayload,
-    @Param('organizationId') organizationId: string,
+    @Param(organizationDocumentRoute.organizationParam) organizationId: string,
   ) {
     return this.documentService.listInOrganization({
       organizationId,

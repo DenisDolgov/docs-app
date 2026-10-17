@@ -1,3 +1,5 @@
+import { authPaths } from '@docs-app/contracts/auth/routes';
+
 import { API_URL } from './auth-config';
 
 export class SessionExpired extends Error {
@@ -62,7 +64,7 @@ const refreshOnce = async () => {
   const cleanup = abortOnPageHide(controller);
 
   try {
-    const response = await fetch(`${API_URL}/auth/refresh`, {
+    const response = await fetch(`${API_URL}${authPaths.refresh}`, {
       method: 'POST',
       credentials: 'include',
       signal: controller.signal,

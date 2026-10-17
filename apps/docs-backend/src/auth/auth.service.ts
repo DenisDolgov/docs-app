@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import {
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   OnModuleInit,
   UnauthorizedException,
@@ -58,8 +57,8 @@ export class AuthService implements OnModuleInit {
         throw new ConflictException(USER_EMAIL_ALREADY_EXISTS_ERROR);
       }
 
-      this.logger.error(error);
-      throw new InternalServerErrorException();
+      // прочие ошибки логирует и превращает в 500 глобальный фильтр
+      throw error;
     }
   }
 

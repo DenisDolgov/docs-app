@@ -1,13 +1,13 @@
+import {
+  COLLAB_MESSAGE_AWARENESS,
+  COLLAB_MESSAGE_SYNC,
+} from '@docs-app/contracts/collab/protocol';
 import * as encoding from 'lib0/encoding';
 import { describe, expect, it } from 'vitest';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 
-import {
-  COLLAB_MESSAGE_AWARENESS,
-  COLLAB_MESSAGE_SYNC,
-} from '../../src/collab/collab.constants';
 import {
   applyAwarenessMessage,
   applySyncMessage,

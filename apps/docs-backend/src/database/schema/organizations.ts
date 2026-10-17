@@ -1,3 +1,4 @@
+import { organizationRoles } from '@docs-app/contracts/organization';
 import { sql } from 'drizzle-orm';
 import {
   index,
@@ -9,13 +10,12 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-export const organizationRoleEnum = pgEnum('organization_role', [
-  'owner',
-  'admin',
-  'member',
-]);
-
-export type OrganizationRole = (typeof organizationRoleEnum.enumValues)[number];
+// Набор ролей — источник истины в контракте (`@docs-app/contracts/organization`),
+// `pgEnum` выводится из него, чтобы клиент и БД не разъезжались.
+export const organizationRoleEnum = pgEnum(
+  'organization_role',
+  organizationRoles,
+);
 
 export const organizationSchema = snakeCase.schema('organization');
 
