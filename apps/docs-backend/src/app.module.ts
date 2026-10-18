@@ -13,6 +13,7 @@ import { DatabaseModule } from './database/database.module';
 import { DocumentModule } from './document/document.module';
 import { HealthModule } from './health/health.module';
 import { createLoggerParams } from './logger/logger.config';
+import { MailModule } from './mail/mail.module';
 import { OrganizationModule } from './organization/organization.module';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
 import { RedisModule } from './redis/redis.module';
@@ -38,6 +39,7 @@ import { StorageModule } from './storage/storage.module';
     OrganizationModule,
     DocumentModule,
     CollabModule,
+    MailModule,
   ],
   controllers: [],
   providers: [

@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
-    "@docs-app/contracts": "workspace:*",
     "@aws-sdk/s3-request-presigner": "^3.1146.0",
+    "@docs-app/contracts": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^12.0.0",
@@ -35,6 +35,7 @@
     "ioredis": "^6.0.0",
     "lib0": "^0.2.119",
     "nestjs-pino": "^5.2.1",
+    "nodemailer": "^10.1.2",
     "pg": "^8.23.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",

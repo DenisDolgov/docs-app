@@ -8,3 +8,6 @@ process.env.JWT_ACCESS_SECRET ??= 'test-access-secret';
 process.env.S3_ENDPOINT ??= 'http://localhost:9000';
 process.env.S3_ACCESS_KEY ??= 'user';
 process.env.S3_SECRET_KEY ??= 'pass-secret';
+process.env.SMTP_HOST ??= 'localhost';
+process.env.SMTP_PORT ??= '1025';
+process.env.SMTP_FROM ??= 'Docs <noreply@docs.local>';

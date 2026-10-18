@@ -5,6 +5,7 @@ const targets = [
     { name: 'redis', host: 'localhost', port: 6379 },
     { name: 'rabbitmq', host: 'localhost', port: 5672 },
     { name: 'minio', host: 'localhost', port: 9000 },
+    { name: 'mailhog', host: 'localhost', port: 1025 },
 ];
 
 const probe = (host, port, timeout = 1000) =>

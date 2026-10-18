@@ -6,8 +6,8 @@
 
 ```
 apps/
-  docs-frontend/   Next.js 16, React 19, Convex, Clerk, Liveblocks
-  docs-backend/    NestJS
+  docs-frontend/   Next.js 16, React 19
+  docs-backend/    NestJS 12
 ```
 
 Единый `pnpm-lock.yaml` и `pnpm-workspace.yaml` в корне. Общие версии пакетов
