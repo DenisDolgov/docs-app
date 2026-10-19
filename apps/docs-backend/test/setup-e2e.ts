@@ -11,3 +11,6 @@ process.env.S3_SECRET_KEY ??= 'pass-secret';
 process.env.SMTP_HOST ??= 'localhost';
 process.env.SMTP_PORT ??= '1025';
 process.env.SMTP_FROM ??= 'Docs <noreply@docs.local>';
+// Адрес фронтенда, из которого собираются ссылки в письмах. Значение нарочно
+// отличается от дефолта в схеме: тест должен поймать захардкоженный адрес.
+process.env.APP_URL ??= 'https://docs.example.test';

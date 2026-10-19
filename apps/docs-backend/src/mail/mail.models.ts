@@ -12,3 +12,26 @@ export interface SentMail {
 export interface MailProvider {
   send(mail: OutgoingMail): Promise<SentMail>;
 }
+
+export interface SendVerificationParams {
+  to: string;
+  token: string;
+}
+
+export interface SendPasswordResetParams {
+  to: string;
+  token: string;
+}
+
+export interface SendOrganizationInviteParams {
+  to: string;
+  token: string;
+  organizationName: string;
+  inviterEmail: string;
+}
+
+export interface RenderedMail {
+  subject: string;
+  text: string;
+  html: string;
+}
