@@ -24,10 +24,14 @@ export class MailService {
     return this.mailProvider.send(message);
   }
 
-  sendVerification({ to, token }: SendVerificationParams) {
+  sendVerification({ to, token, ttlHours }: SendVerificationParams) {
     return this.deliver(
       to,
-      verificationTemplate({ to, link: this.link('/verify-email', token) }),
+      verificationTemplate({
+        to,
+        link: this.link('/verify-email', token),
+        ttlHours,
+      }),
     );
   }
 

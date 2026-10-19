@@ -1,12 +1,18 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthService } from '../../src/auth/auth.service';
+import { EmailVerificationTokenRepository } from '../../src/auth/email-verification-token.repository';
 import { RefreshTokenRepository } from '../../src/auth/refresh-token.repository';
 import { UserRepository } from '../../src/auth/user.repository';
+import { MailService } from '../../src/mail/mail.service';
 
 vi.mock('argon2', () => ({
   hash: vi.fn(async () => '$argon2id$dummy'),
@@ -19,7 +25,17 @@ const PASSWORD = 'correct horse battery staple';
 const userRepository = {
   findByEmail: vi.fn(),
   findById: vi.fn(),
-  create: vi.fn(),
+  createWithVerificationToken: vi.fn(),
+  markEmailVerified: vi.fn(),
+};
+
+const emailVerificationTokenRepository = {
+  consume: vi.fn(),
+  replaceForUser: vi.fn(),
+};
+
+const mailService = {
+  sendVerification: vi.fn(),
 };
 
 const refreshTokenRepository = {
@@ -41,11 +57,18 @@ describe('AuthService (unit)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    mailService.sendVerification.mockResolvedValue({ messageId: 'stub' });
+
     const moduleRef = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UserRepository, useValue: userRepository },
         { provide: RefreshTokenRepository, useValue: refreshTokenRepository },
+        {
+          provide: EmailVerificationTokenRepository,
+          useValue: emailVerificationTokenRepository,
+        },
+        { provide: MailService, useValue: mailService },
         { provide: JwtService, useValue: jwtService },
       ],
     }).compile();
@@ -350,12 +373,14 @@ describe('AuthService (unit)', () => {
         service.register({ email: 'user@example.com', password: PASSWORD }),
       ).rejects.toBeInstanceOf(ConflictException);
 
-      expect(userRepository.create).not.toHaveBeenCalled();
+      expect(userRepository.createWithVerificationToken).not.toHaveBeenCalled();
     });
 
     it('превращает нарушение уникальности из БД в 409', async () => {
       userRepository.findByEmail.mockResolvedValue(null);
-      userRepository.create.mockRejectedValue({ code: '23505' });
+      userRepository.createWithVerificationToken.mockRejectedValue({
+        code: '23505',
+      });
 
       await expect(
         service.register({ email: 'user@example.com', password: PASSWORD }),
@@ -364,7 +389,7 @@ describe('AuthService (unit)', () => {
 
     it('нормализует email и хеширует пароль при создании', async () => {
       userRepository.findByEmail.mockResolvedValue(null);
-      userRepository.create.mockResolvedValue({
+      userRepository.createWithVerificationToken.mockResolvedValue({
         id: 'user-1',
         email: 'user@example.com',
       });
@@ -374,10 +399,70 @@ describe('AuthService (unit)', () => {
         password: PASSWORD,
       });
 
-      expect(userRepository.create).toHaveBeenCalledWith({
-        email: 'user@example.com',
-        passwordHash: DUMMY_HASH,
+      expect(userRepository.createWithVerificationToken).toHaveBeenCalledWith(
+        {
+          email: 'user@example.com',
+          passwordHash: DUMMY_HASH,
+        },
+        {
+          tokenHash: expect.any(String),
+          expiresAt: expect.any(Date),
+        },
+      );
+    });
+  });
+
+  describe('email verification', () => {
+    it('подтверждает адрес по одноразовому токену', async () => {
+      emailVerificationTokenRepository.consume.mockResolvedValue({
+        userId: 'user-1',
       });
+
+      await service.verifyEmail('valid-token');
+
+      expect(emailVerificationTokenRepository.consume).toHaveBeenCalledWith(
+        expect.any(String),
+      );
+      expect(userRepository.markEmailVerified).toHaveBeenCalledWith('user-1');
+    });
+
+    it('отклоняет неизвестный, истёкший или уже использованный токен', async () => {
+      emailVerificationTokenRepository.consume.mockResolvedValue(null);
+
+      await expect(service.verifyEmail('spent-token')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(userRepository.markEmailVerified).not.toHaveBeenCalled();
+    });
+
+    it('повторная отправка заменяет активный токен', async () => {
+      await service.sendEmailVerification({
+        id: 'user-1',
+        email: 'user@example.com',
+      });
+
+      expect(
+        emailVerificationTokenRepository.replaceForUser,
+      ).toHaveBeenCalledWith('user-1', {
+        tokenHash: expect.any(String),
+        expiresAt: expect.any(Date),
+      });
+      expect(mailService.sendVerification).toHaveBeenCalledTimes(1);
+    });
+
+    it('не роняет регистрацию, если письмо не ушло', async () => {
+      userRepository.findByEmail.mockResolvedValue(null);
+      userRepository.createWithVerificationToken.mockResolvedValue({
+        id: 'user-1',
+        email: 'user@example.com',
+      });
+      mailService.sendVerification.mockRejectedValueOnce(
+        new Error('SMTP недоступен'),
+      );
+
+      await expect(
+        service.register({ email: 'user@example.com', password: PASSWORD }),
+      ).resolves.toEqual({ id: 'user-1', email: 'user@example.com' });
     });
   });
 });

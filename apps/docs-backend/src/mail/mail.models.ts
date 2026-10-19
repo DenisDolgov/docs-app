@@ -16,6 +16,7 @@ export interface MailProvider {
 export interface SendVerificationParams {
   to: string;
   token: string;
+  ttlHours: number;
 }
 
 export interface SendPasswordResetParams {

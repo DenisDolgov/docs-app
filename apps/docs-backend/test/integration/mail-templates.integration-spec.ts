@@ -76,7 +76,11 @@ describe('mail: шаблоны писем', () => {
   });
 
   it('доносит ссылку подтверждения до почтового клиента в обеих версиях', async () => {
-    await mail.sendVerification({ to: RECIPIENT, token: TOKEN });
+    await mail.sendVerification({
+      to: RECIPIENT,
+      token: TOKEN,
+      ttlHours: 24,
+    });
 
     const message = await onlyMessage();
     const link = `${APP_URL}/verify-email?token=${TOKEN}`;
@@ -86,7 +90,11 @@ describe('mail: шаблоны писем', () => {
   });
 
   it('отправляет читаемую тему и обе части письма', async () => {
-    await mail.sendVerification({ to: RECIPIENT, token: TOKEN });
+    await mail.sendVerification({
+      to: RECIPIENT,
+      token: TOKEN,
+      ttlHours: 24,
+    });
 
     const message = await onlyMessage();
 
@@ -96,7 +104,11 @@ describe('mail: шаблоны писем', () => {
   });
 
   it('не смешивает письма разных сценариев', async () => {
-    await mail.sendVerification({ to: RECIPIENT, token: TOKEN });
+    await mail.sendVerification({
+      to: RECIPIENT,
+      token: TOKEN,
+      ttlHours: 24,
+    });
     await mail.sendPasswordReset({ to: RECIPIENT, token: TOKEN });
 
     await waitFor(async () => (await inbox()).length === 2);

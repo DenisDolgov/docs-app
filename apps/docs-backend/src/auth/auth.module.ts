@@ -3,8 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
 import { DatabaseModule } from '../database/database.module';
+import { MailModule } from '../mail/mail.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EmailVerificationTokenRepository } from './email-verification-token.repository';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { UserRepository } from './user.repository';
@@ -21,10 +23,12 @@ import { UserRepository } from './user.repository';
         },
       }),
     }),
+    MailModule,
   ],
   providers: [
     UserRepository,
     RefreshTokenRepository,
+    EmailVerificationTokenRepository,
     JwtAuthGuard,
     AuthService,
   ],

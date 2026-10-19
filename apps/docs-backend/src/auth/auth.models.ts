@@ -16,3 +16,8 @@ export interface LoginParams {
   email: string;
   password: string;
 }
+
+export interface SendEmailVerificationParams {
+  id: string;
+  email: string;
+}

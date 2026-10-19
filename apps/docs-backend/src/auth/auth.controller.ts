@@ -2,6 +2,8 @@ import {
   loginDto,
   registerDto,
   userResponseDto,
+  VerifyEmailDto,
+  verifyEmailDto,
 } from '@docs-app/contracts/auth';
 import { authRoute } from '@docs-app/contracts/auth/routes';
 import {
@@ -118,6 +120,24 @@ export class AuthController {
       email: user.email,
       id: user.sub,
     };
+  }
+
+  @Post(authRoute.verifyEmail)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  verifyEmail(
+    @Body({ schema: verifyEmailDto }) body: VerifyEmailDto,
+  ): Promise<void> {
+    return this.authService.verifyEmail(body.token);
+  }
+
+  @Post(authRoute.resendEmail)
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  resendEmail(@CurrentUser() user: AccessTokenPayload) {
+    return this.authService.sendEmailVerification({
+      id: user.sub,
+      email: user.email,
+    });
   }
 
   private setAccessTokenCookie(res: Response, accessToken: string) {

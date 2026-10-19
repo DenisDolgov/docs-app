@@ -8,7 +8,7 @@ import {
   ACCESS_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
 } from '../../src/auth/auth.constants';
-import { hashRefreshToken } from '../../src/auth/refresh-token';
+import { hashToken } from '../../src/auth/token';
 import { DATABASE, type Database } from '../../src/database/database.constants';
 import { createTestApp, readAccessToken } from '../utils';
 
@@ -161,7 +161,7 @@ describe('refresh-токены', () => {
     // Выносим отзыв за окно grace.
     await db.execute(
       sql`update auth.refresh_tokens set revoked_at = now() - interval '1 minute'
-          where token_hash = ${hashRefreshToken(cookieValue(first))}`,
+          where token_hash = ${hashToken(cookieValue(first))}`,
     );
 
     const reused = await refresh(first);

@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AuthService } from '../../src/auth/auth.service';
-import { hashRefreshToken } from '../../src/auth/refresh-token';
+import { hashToken } from '../../src/auth/token';
 import { DATABASE, type Database } from '../../src/database/database.constants';
 import { createTestingModule } from '../utils';
 
@@ -63,6 +63,7 @@ where table_schema = 'auth' and table_name = 'users' order by column_name`,
     expect(result.rows.map((row) => row.column_name)).toEqual([
       'created_at',
       'email',
+      'email_verified_at',
       'id',
       'password_hash',
     ]);
@@ -99,7 +100,7 @@ where table_schema = 'auth' and table_name = 'users' order by column_name`,
 
     const rows = result.rows;
     const hashed = rows.some(
-      (row) => row.token_hash === hashRefreshToken(refreshToken),
+      (row) => row.token_hash === hashToken(refreshToken),
     );
 
     expect(hashed).toBe(true);
@@ -117,7 +118,7 @@ where table_schema = 'auth' and table_name = 'users' order by column_name`,
 
     await db.execute(
       sql`insert into auth.refresh_tokens (user_id, session_id, token_hash, expires_at)
-          values (${id}, ${randomUUID()}, ${hashRefreshToken(expired)}, now() - interval '1 day')`,
+          values (${id}, ${randomUUID()}, ${hashToken(expired)}, now() - interval '1 day')`,
     );
 
     await expect(auth.refresh(expired)).rejects.toBeInstanceOf(
@@ -142,7 +143,7 @@ where table_schema = 'auth' and table_name = 'users' order by column_name`,
       revoked_reason: string | null;
     }>(
       sql`select revoked_at, revoked_reason from auth.refresh_tokens
-          where token_hash = ${hashRefreshToken(rotated.refreshToken)}`,
+          where token_hash = ${hashToken(rotated.refreshToken)}`,
     );
 
     expect(successor.rows[0]?.revoked_reason).toBe('rotated');
@@ -157,7 +158,7 @@ where table_schema = 'auth' and table_name = 'users' order by column_name`,
 
     await db.execute(
       sql`update auth.refresh_tokens set revoked_at = now() - interval '1 minute'
-          where token_hash = ${hashRefreshToken(first.refreshToken)}`,
+          where token_hash = ${hashToken(first.refreshToken)}`,
     );
 
     await expect(auth.refresh(first.refreshToken)).rejects.toBeInstanceOf(

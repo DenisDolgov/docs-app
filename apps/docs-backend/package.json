@@ -31,6 +31,7 @@
     "amqplib": "^2.2.0",
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
+    "date-fns": "catalog:",
     "drizzle-orm": "1.0.0-rc.4",
     "ioredis": "^6.0.0",
     "lib0": "^0.2.119",

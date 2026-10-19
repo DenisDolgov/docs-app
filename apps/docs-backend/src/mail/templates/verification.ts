@@ -1,15 +1,16 @@
-import { VERIFICATION_LINK_TTL_HOURS } from '../mail.constants';
 import type { RenderedMail } from '../mail.models';
 import { button, paragraph, plainLink, renderLayout } from './layout';
 
 export const verificationTemplate = ({
   to,
   link,
+  ttlHours,
 }: {
   to: string;
   link: string;
+  ttlHours: number;
 }): RenderedMail => {
-  const ttl = `${VERIFICATION_LINK_TTL_HOURS} ч.`;
+  const ttl = `${ttlHours} ч.`;
 
   return {
     subject: 'Подтверждение почты',

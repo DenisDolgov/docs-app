@@ -1,5 +1,8 @@
+import { hoursToMilliseconds, secondsToMilliseconds } from 'date-fns';
+
 export const REFRESH_COOKIE_NAME = 'docs.refreshToken';
-export const REFRESH_COOKIE_TTL = 30 * 24 * 60 * 60 * 1000;
+// 30 дней: сессия живёт, пока клиент может её ротировать.
+export const REFRESH_COOKIE_TTL = hoursToMilliseconds(24 * 30);
 
 // Префикс `__Host-` требует Secure, path=/ и отсутствие Domain. Так access-куку
 // видят `proxy.ts`, `/api` и `/ws`, а украсть её у другого поддомена нельзя.
@@ -11,4 +14,11 @@ export const ACCESS_COOKIE_TTL = REFRESH_COOKIE_TTL;
 // Окно, в котором повторно предъявленный «ротированный» refresh-токен считается
 // гонкой между вкладками, а не кражей: вместо сноса всех сессий — ещё одна
 // ротация в ту же sessionId.
-export const REFRESH_GRACE_PERIOD = 15_000;
+export const REFRESH_GRACE_PERIOD = secondsToMilliseconds(15);
+
+// Время жизни токена для подтверждения почты. Часы нужны и здесь, и в тексте
+// письма, поэтому одно значение питает оба места.
+export const EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 24;
+export const EMAIL_VERIFICATION_TOKEN_TTL = hoursToMilliseconds(
+  EMAIL_VERIFICATION_TOKEN_TTL_HOURS,
+);

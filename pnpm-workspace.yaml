@@ -3,6 +3,7 @@ packages:
   - packages/*
 
 catalog:
+  date-fns: ^4.4.0
   typescript: ^5
   "@types/node": ^20
   zod: ^4.6.5

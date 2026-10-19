@@ -11,6 +11,8 @@ export const authRoute = {
   logout: 'logout',
   logoutAll: 'logout-all',
   me: 'me',
+  verifyEmail: 'email/verify',
+  resendEmail: 'email/resend',
 } as const;
 
 export const authPaths = {
@@ -20,4 +22,6 @@ export const authPaths = {
   logout: `/${base}/logout`,
   logoutAll: `/${base}/logout-all`,
   me: `/${base}/me`,
+  verifyEmail: `/${base}/email/verify`,
+  resendEmail: `/${base}/email/resend`,
 } as const;

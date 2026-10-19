@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -11,15 +12,27 @@ import * as argon2 from 'argon2';
 
 import { normalizeEmail } from '../common/utils/email';
 import { isUniqueViolation } from '../database/sql-errors';
-import { REFRESH_COOKIE_TTL, REFRESH_GRACE_PERIOD } from './auth.constants';
-import { LoginParams, RegisterParams } from './auth.models';
+import { MailService } from '../mail/mail.service';
 import {
+  EMAIL_VERIFICATION_TOKEN_TTL,
+  EMAIL_VERIFICATION_TOKEN_TTL_HOURS,
+  REFRESH_COOKIE_TTL,
+  REFRESH_GRACE_PERIOD,
+} from './auth.constants';
+import {
+  LoginParams,
+  RegisterParams,
+  SendEmailVerificationParams,
+} from './auth.models';
+import { EmailVerificationTokenRepository } from './email-verification-token.repository';
+import {
+  EMAIL_VERIFICATION_TOKEN_INVALID_ERROR,
   INVALID_EMAIL_OR_PASSWORD_ERROR,
   UNAUTHORIZED_ERROR,
   USER_EMAIL_ALREADY_EXISTS_ERROR,
 } from './errors';
-import { generateRefreshToken, hashRefreshToken } from './refresh-token';
 import { RefreshTokenRepository } from './refresh-token.repository';
+import { generateToken, hashToken } from './token';
 import { UserRepository } from './user.repository';
 
 @Injectable()
@@ -30,7 +43,9 @@ export class AuthService implements OnModuleInit {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
+    private readonly emailVerificationTokenRepository: EmailVerificationTokenRepository,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async onModuleInit() {
@@ -46,12 +61,23 @@ export class AuthService implements OnModuleInit {
     }
 
     const passwordHash = await argon2.hash(password);
+    const verification = this.createVerificationToken();
 
     try {
-      return await this.userRepository.create({
-        email: normalizedEmail,
-        passwordHash,
-      });
+      const userRecord = await this.userRepository.createWithVerificationToken(
+        {
+          email: normalizedEmail,
+          passwordHash,
+        },
+        {
+          tokenHash: verification.tokenHash,
+          expiresAt: verification.expiresAt,
+        },
+      );
+
+      this.sendVerificationEmail(userRecord.email, verification.token);
+
+      return userRecord;
     } catch (error: unknown) {
       if (isUniqueViolation(error)) {
         throw new ConflictException(USER_EMAIL_ALREADY_EXISTS_ERROR);
@@ -80,7 +106,7 @@ export class AuthService implements OnModuleInit {
   }
 
   public async refresh(refreshToken: string) {
-    const tokenHash = hashRefreshToken(refreshToken);
+    const tokenHash = hashToken(refreshToken);
 
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
 
@@ -139,7 +165,7 @@ export class AuthService implements OnModuleInit {
   }
 
   public async logout(refreshToken: string) {
-    const tokenHash = hashRefreshToken(refreshToken);
+    const tokenHash = hashToken(refreshToken);
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
 
     if (!tokenRecord) return;
@@ -151,7 +177,7 @@ export class AuthService implements OnModuleInit {
   }
 
   public async logoutAll(refreshToken: string) {
-    const tokenHash = hashRefreshToken(refreshToken);
+    const tokenHash = hashToken(refreshToken);
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
 
     if (!tokenRecord) return;
@@ -160,6 +186,59 @@ export class AuthService implements OnModuleInit {
       tokenRecord.userId,
       'logout_all',
     );
+  }
+
+  public async sendEmailVerification({
+    id,
+    email,
+  }: SendEmailVerificationParams) {
+    const { token, tokenHash, expiresAt } = this.createVerificationToken();
+
+    await this.emailVerificationTokenRepository.replaceForUser(id, {
+      tokenHash,
+      expiresAt,
+    });
+
+    this.sendVerificationEmail(email, token);
+  }
+
+  public async verifyEmail(token: string) {
+    const tokenRecord = await this.emailVerificationTokenRepository.consume(
+      hashToken(token),
+    );
+
+    if (!tokenRecord) {
+      throw new BadRequestException(EMAIL_VERIFICATION_TOKEN_INVALID_ERROR);
+    }
+
+    await this.userRepository.markEmailVerified(tokenRecord.userId);
+  }
+
+  private createVerificationToken() {
+    const token = generateToken();
+
+    return {
+      token,
+      tokenHash: hashToken(token),
+      expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL),
+    };
+  }
+
+  // Письмо не должно задерживать HTTP-ответ: SMTP ждём в фоне. Ошибку логируем,
+  // но отправитель о ней не узнает. Надёжная доставка — через outbox (TD26).
+  private sendVerificationEmail(email: string, token: string) {
+    void this.mailService
+      .sendVerification({
+        to: email,
+        token,
+        ttlHours: EMAIL_VERIFICATION_TOKEN_TTL_HOURS,
+      })
+      .catch((error: unknown) => {
+        this.logger.error(
+          { email, err: error },
+          'failed to send verification email',
+        );
+      });
   }
 
   private async issueTokens(
@@ -180,8 +259,8 @@ export class AuthService implements OnModuleInit {
 
   private async createSession(userId: string, currentSessionId?: string) {
     const sessionId = currentSessionId ?? randomUUID();
-    const refreshToken = generateRefreshToken();
-    const tokenHash = hashRefreshToken(refreshToken);
+    const refreshToken = generateToken();
+    const tokenHash = hashToken(refreshToken);
     const expiresAt = new Date(Date.now() + REFRESH_COOKIE_TTL);
 
     await this.refreshTokenRepository.create({

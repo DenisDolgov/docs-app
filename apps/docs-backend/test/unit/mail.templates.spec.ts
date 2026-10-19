@@ -59,7 +59,7 @@ describe('MailService: шаблоны писем (unit)', () => {
 
   describe('sendVerification', () => {
     it('строит ссылку подтверждения из APP_URL и токена', async () => {
-      await service.sendVerification({ to: TO, token: TOKEN });
+      await service.sendVerification({ to: TO, token: TOKEN, ttlHours: 24 });
 
       const mail = lastMail();
       expect(mail.to).toBe(TO);
@@ -73,7 +73,7 @@ describe('MailService: шаблоны писем (unit)', () => {
     it('не удваивает слэш, если APP_URL задан со слэшем на конце', async () => {
       config.getOrThrow.mockReturnValue(`${APP_URL}/`);
 
-      await service.sendVerification({ to: TO, token: TOKEN });
+      await service.sendVerification({ to: TO, token: TOKEN, ttlHours: 24 });
 
       const mail = lastMail();
       expect(mail.text).toContain(`${APP_URL}/verify-email?token=${TOKEN}`);
@@ -81,7 +81,7 @@ describe('MailService: шаблоны писем (unit)', () => {
     });
 
     it('даёт текстовую версию без html-разметки', async () => {
-      await service.sendVerification({ to: TO, token: TOKEN });
+      await service.sendVerification({ to: TO, token: TOKEN, ttlHours: 24 });
 
       const mail = lastMail();
       expect(mail.text.trim()).not.toBe('');
@@ -91,14 +91,14 @@ describe('MailService: шаблоны писем (unit)', () => {
 
     it('возвращает messageId провайдера', async () => {
       await expect(
-        service.sendVerification({ to: TO, token: TOKEN }),
+        service.sendVerification({ to: TO, token: TOKEN, ttlHours: 24 }),
       ).resolves.toEqual({ messageId: 'provider-message-id' });
     });
   });
 
   describe('sendPasswordReset', () => {
     it('ведёт на страницу сброса пароля и не повторяет тему подтверждения', async () => {
-      await service.sendVerification({ to: TO, token: TOKEN });
+      await service.sendVerification({ to: TO, token: TOKEN, ttlHours: 24 });
       const verificationSubject = lastMail().subject;
 
       provider.send.mockClear();

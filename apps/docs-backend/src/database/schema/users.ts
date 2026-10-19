@@ -1,5 +1,12 @@
 import { sql } from 'drizzle-orm';
-import { pgEnum, snakeCase, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  index,
+  pgEnum,
+  snakeCase,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const authSchema = snakeCase.schema('auth');
 
@@ -17,6 +24,7 @@ export const users = authSchema.table('users', {
   email: text().notNull().unique(),
   passwordHash: text().notNull(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  emailVerifiedAt: timestamp({ withTimezone: true }),
 });
 
 export const refreshTokens = authSchema.table('refresh_tokens', {
@@ -29,3 +37,16 @@ export const refreshTokens = authSchema.table('refresh_tokens', {
   revokedAt: timestamp({ withTimezone: true }),
   revokedReason: refreshTokenRevokeReasonEnum(),
 });
+
+export const emailVerificationTokens = authSchema.table(
+  'email_verification_tokens',
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    userId: uuid().notNull(),
+    tokenHash: text().notNull().unique(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    usedAt: timestamp({ withTimezone: true }),
+  },
+  (table) => [index('email_verification_tokens_user_id_idx').on(table.userId)],
+);

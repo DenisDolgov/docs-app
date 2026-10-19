@@ -66,7 +66,7 @@ export default async function setup() {
   await client.connect();
   await migrate(drizzle({ client }), { migrationsFolder: MIGRATIONS_FOLDER });
   await client.query(
-    'truncate auth.users, auth.refresh_tokens, documents.documents cascade',
+    'truncate auth.users, auth.refresh_tokens, auth.email_verification_tokens, documents.documents cascade',
   );
   await client.end();
 

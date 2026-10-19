@@ -17,6 +17,12 @@ describe('контракт маршрутов', () => {
   it('полные пути auth выводятся из base', () => {
     expect(authPaths.me).toBe(`/${authRoute.base}/me`);
     expect(authPaths.refresh).toBe(`/${authRoute.base}/${authRoute.refresh}`);
+    expect(authPaths.verifyEmail).toBe(
+      `/${authRoute.base}/${authRoute.verifyEmail}`,
+    );
+    expect(authPaths.resendEmail).toBe(
+      `/${authRoute.base}/${authRoute.resendEmail}`,
+    );
   });
 
   it('контур документов организации собран из сегментов', () => {

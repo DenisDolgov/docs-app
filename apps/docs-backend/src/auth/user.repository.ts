@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
 
 import { DATABASE, Database } from '../database/database.constants';
 import * as schema from '../database/schema';
@@ -22,6 +23,27 @@ export class UserRepository {
     return user;
   }
 
+  // Регистрация — одна единица работы: если токен не записался, пользователя
+  // быть не должно, иначе повторная регистрация упрётся в 409.
+  public async createWithVerificationToken(
+    user: typeof schema.users.$inferInsert,
+    token: Omit<typeof schema.emailVerificationTokens.$inferInsert, 'userId'>,
+  ) {
+    return this.db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(schema.users)
+        .values(user)
+        .returning({ id: schema.users.id, email: schema.users.email });
+
+      await tx.insert(schema.emailVerificationTokens).values({
+        ...token,
+        userId: created.id,
+      });
+
+      return created;
+    });
+  }
+
   public async findById(id: string) {
     return this.db.query.users.findFirst({
       where: { id },
@@ -34,5 +56,12 @@ export class UserRepository {
     return this.db.query.users.findMany({
       where: { id: { in: ids } },
     });
+  }
+
+  public async markEmailVerified(id: string) {
+    await this.db
+      .update(schema.users)
+      .set({ emailVerifiedAt: new Date() })
+      .where(eq(schema.users.id, id));
   }
 }
