@@ -12,25 +12,31 @@ import * as argon2 from 'argon2';
 
 import { normalizeEmail } from '../common/utils/email';
 import { isUniqueViolation } from '../database/sql-errors';
+import { UnitOfWork } from '../database/unit-of-work';
 import { MailService } from '../mail/mail.service';
 import {
   EMAIL_VERIFICATION_TOKEN_TTL,
   EMAIL_VERIFICATION_TOKEN_TTL_HOURS,
+  PASSWORD_RESET_TOKEN_TTL,
+  PASSWORD_RESET_TOKEN_TTL_HOURS,
   REFRESH_COOKIE_TTL,
   REFRESH_GRACE_PERIOD,
 } from './auth.constants';
 import {
   LoginParams,
   RegisterParams,
+  ResetPasswordParams,
   SendEmailVerificationParams,
 } from './auth.models';
 import { EmailVerificationTokenRepository } from './email-verification-token.repository';
 import {
   EMAIL_VERIFICATION_TOKEN_INVALID_ERROR,
   INVALID_EMAIL_OR_PASSWORD_ERROR,
+  PASSWORD_RESET_TOKEN_INVALID_ERROR,
   UNAUTHORIZED_ERROR,
   USER_EMAIL_ALREADY_EXISTS_ERROR,
 } from './errors';
+import { PasswordResetTokenRepository } from './password-reset-token.repository';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { generateToken, hashToken } from './token';
 import { UserRepository } from './user.repository';
@@ -44,6 +50,8 @@ export class AuthService implements OnModuleInit {
     private readonly userRepository: UserRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly emailVerificationTokenRepository: EmailVerificationTokenRepository,
+    private readonly passwordResetTokenRepository: PasswordResetTokenRepository,
+    private readonly unitOfWork: UnitOfWork,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
   ) {}
@@ -52,7 +60,7 @@ export class AuthService implements OnModuleInit {
     this.dummyHash = await argon2.hash('dummy');
   }
 
-  public async register({ email, password }: RegisterParams) {
+  async register({ email, password }: RegisterParams) {
     const normalizedEmail = normalizeEmail(email);
     const existing = await this.userRepository.findByEmail(normalizedEmail);
 
@@ -88,7 +96,7 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  public async login({ email, password }: LoginParams) {
+  async login({ email, password }: LoginParams) {
     const normalizedEmail = normalizeEmail(email);
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
@@ -105,7 +113,7 @@ export class AuthService implements OnModuleInit {
     return this.issueTokens({ id: user.id, email: user.email });
   }
 
-  public async refresh(refreshToken: string) {
+  async refresh(refreshToken: string) {
     const tokenHash = hashToken(refreshToken);
 
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
@@ -164,7 +172,7 @@ export class AuthService implements OnModuleInit {
     return this.issueTokens(userRecord, tokenRecord.sessionId);
   }
 
-  public async logout(refreshToken: string) {
+  async logout(refreshToken: string) {
     const tokenHash = hashToken(refreshToken);
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
 
@@ -176,7 +184,7 @@ export class AuthService implements OnModuleInit {
     );
   }
 
-  public async logoutAll(refreshToken: string) {
+  async logoutAll(refreshToken: string) {
     const tokenHash = hashToken(refreshToken);
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
 
@@ -188,10 +196,7 @@ export class AuthService implements OnModuleInit {
     );
   }
 
-  public async sendEmailVerification({
-    id,
-    email,
-  }: SendEmailVerificationParams) {
+  async sendEmailVerification({ id, email }: SendEmailVerificationParams) {
     const { token, tokenHash, expiresAt } = this.createVerificationToken();
 
     await this.emailVerificationTokenRepository.replaceForUser(id, {
@@ -202,7 +207,7 @@ export class AuthService implements OnModuleInit {
     this.sendVerificationEmail(email, token);
   }
 
-  public async verifyEmail(token: string) {
+  async verifyEmail(token: string) {
     const tokenRecord = await this.emailVerificationTokenRepository.consume(
       hashToken(token),
     );
@@ -214,6 +219,74 @@ export class AuthService implements OnModuleInit {
     await this.userRepository.markEmailVerified(tokenRecord.userId);
   }
 
+  async requestPasswordReset(email: string) {
+    const normalizedEmail = normalizeEmail(email);
+
+    const userRecord = await this.userRepository.findByEmail(normalizedEmail);
+
+    if (!userRecord) return;
+
+    const { token, tokenHash, expiresAt } = this.createPasswordResetToken();
+
+    await this.passwordResetTokenRepository.replaceForUser(userRecord.id, {
+      tokenHash,
+      expiresAt,
+    });
+
+    this.sendPasswordResetEmail(userRecord.email, token);
+  }
+
+  async resetPassword({ password, token }: ResetPasswordParams) {
+    const tokenHash = hashToken(token);
+
+    // Дешёвое чтение без блокировки: нужно знать пользователя, чтобы взять тот
+    // же advisory-lock, что и при выпуске токена, и не хешировать мусор.
+    const activeToken =
+      await this.passwordResetTokenRepository.findActive(tokenHash);
+
+    if (!activeToken) {
+      throw new BadRequestException(PASSWORD_RESET_TOKEN_INVALID_ERROR);
+    }
+
+    const passwordHash = await argon2.hash(password);
+
+    // Всё остальное — одна единица работы. Любое исключение внутри откатит
+    // и погашение токена, и смену пароля, и отзыв сессий.
+    await this.unitOfWork.run(async (tx) => {
+      await this.passwordResetTokenRepository.lockUser(activeToken.userId, tx);
+
+      const tokenRecord = await this.passwordResetTokenRepository.consume(
+        tokenHash,
+        tx,
+      );
+
+      if (!tokenRecord) {
+        throw new BadRequestException(PASSWORD_RESET_TOKEN_INVALID_ERROR);
+      }
+
+      const userRecord = await this.userRepository.resetPassword(
+        tokenRecord.userId,
+        passwordHash,
+        tx,
+      );
+
+      if (!userRecord) {
+        throw new BadRequestException(PASSWORD_RESET_TOKEN_INVALID_ERROR);
+      }
+
+      await this.refreshTokenRepository.revokeAllByUser(
+        userRecord.id,
+        'password_reset',
+        tx,
+      );
+
+      await this.passwordResetTokenRepository.consumeAllForUser(
+        userRecord.id,
+        tx,
+      );
+    });
+  }
+
   private createVerificationToken() {
     const token = generateToken();
 
@@ -221,6 +294,16 @@ export class AuthService implements OnModuleInit {
       token,
       tokenHash: hashToken(token),
       expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL),
+    };
+  }
+
+  private createPasswordResetToken() {
+    const token = generateToken();
+
+    return {
+      token,
+      tokenHash: hashToken(token),
+      expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL),
     };
   }
 
@@ -237,6 +320,21 @@ export class AuthService implements OnModuleInit {
         this.logger.error(
           { email, err: error },
           'failed to send verification email',
+        );
+      });
+  }
+
+  private sendPasswordResetEmail(email: string, token: string) {
+    void this.mailService
+      .sendPasswordReset({
+        to: email,
+        token,
+        ttlHours: PASSWORD_RESET_TOKEN_TTL_HOURS,
+      })
+      .catch((error: unknown) => {
+        this.logger.error(
+          { email, err: error },
+          'failed to send password reset email',
         );
       });
   }

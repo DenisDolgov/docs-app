@@ -10,8 +10,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthService } from '../../src/auth/auth.service';
 import { EmailVerificationTokenRepository } from '../../src/auth/email-verification-token.repository';
+import { PasswordResetTokenRepository } from '../../src/auth/password-reset-token.repository';
 import { RefreshTokenRepository } from '../../src/auth/refresh-token.repository';
 import { UserRepository } from '../../src/auth/user.repository';
+import { UnitOfWork } from '../../src/database/unit-of-work';
 import { MailService } from '../../src/mail/mail.service';
 
 vi.mock('argon2', () => ({
@@ -27,6 +29,7 @@ const userRepository = {
   findById: vi.fn(),
   createWithVerificationToken: vi.fn(),
   markEmailVerified: vi.fn(),
+  resetPassword: vi.fn(),
 };
 
 const emailVerificationTokenRepository = {
@@ -34,8 +37,17 @@ const emailVerificationTokenRepository = {
   replaceForUser: vi.fn(),
 };
 
+const passwordResetTokenRepository = {
+  findActive: vi.fn(),
+  consume: vi.fn(),
+  lockUser: vi.fn(),
+  consumeAllForUser: vi.fn(),
+  replaceForUser: vi.fn(),
+};
+
 const mailService = {
   sendVerification: vi.fn(),
+  sendPasswordReset: vi.fn(),
 };
 
 const refreshTokenRepository = {
@@ -51,6 +63,10 @@ const jwtService = {
   sign: vi.fn(() => 'signed.access.token'),
 };
 
+const unitOfWork = {
+  run: vi.fn(),
+};
+
 describe('AuthService (unit)', () => {
   let service: AuthService;
 
@@ -58,6 +74,7 @@ describe('AuthService (unit)', () => {
     vi.clearAllMocks();
 
     mailService.sendVerification.mockResolvedValue({ messageId: 'stub' });
+    mailService.sendPasswordReset.mockResolvedValue({ messageId: 'stub' });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -68,6 +85,11 @@ describe('AuthService (unit)', () => {
           provide: EmailVerificationTokenRepository,
           useValue: emailVerificationTokenRepository,
         },
+        {
+          provide: PasswordResetTokenRepository,
+          useValue: passwordResetTokenRepository,
+        },
+        { provide: UnitOfWork, useValue: unitOfWork },
         { provide: MailService, useValue: mailService },
         { provide: JwtService, useValue: jwtService },
       ],
@@ -463,6 +485,83 @@ describe('AuthService (unit)', () => {
       await expect(
         service.register({ email: 'user@example.com', password: PASSWORD }),
       ).resolves.toEqual({ id: 'user-1', email: 'user@example.com' });
+    });
+  });
+
+  describe('password reset', () => {
+    const fakeTx = {};
+
+    it('отклоняет неизвестный или истёкший токен до хеширования', async () => {
+      passwordResetTokenRepository.findActive.mockResolvedValue(null);
+
+      await expect(
+        service.resetPassword({ token: 'spent-token', password: PASSWORD }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+      expect(userRepository.resetPassword).not.toHaveBeenCalled();
+    });
+
+    it('в одной транзакции гасит токен, меняет пароль и отзывает сессии', async () => {
+      passwordResetTokenRepository.findActive.mockResolvedValue({
+        userId: 'user-1',
+      });
+      passwordResetTokenRepository.consume.mockResolvedValue({
+        userId: 'user-1',
+      });
+      userRepository.resetPassword.mockResolvedValue({ id: 'user-1' });
+      unitOfWork.run.mockImplementation(
+        (work: (tx: typeof fakeTx) => Promise<void>) => work(fakeTx),
+      );
+
+      await service.resetPassword({
+        token: 'valid-token',
+        password: PASSWORD,
+      });
+
+      expect(passwordResetTokenRepository.lockUser).toHaveBeenCalledWith(
+        'user-1',
+        fakeTx,
+      );
+      expect(passwordResetTokenRepository.consume).toHaveBeenCalledWith(
+        expect.any(String),
+        fakeTx,
+      );
+      expect(userRepository.resetPassword).toHaveBeenCalledWith(
+        'user-1',
+        expect.any(String),
+        fakeTx,
+      );
+      expect(refreshTokenRepository.revokeAllByUser).toHaveBeenCalledWith(
+        'user-1',
+        'password_reset',
+        fakeTx,
+      );
+      expect(
+        passwordResetTokenRepository.consumeAllForUser,
+      ).toHaveBeenCalledWith('user-1', fakeTx);
+    });
+
+    it('откатывает работу, если пользователь исчез', async () => {
+      passwordResetTokenRepository.findActive.mockResolvedValue({
+        userId: 'user-1',
+      });
+      passwordResetTokenRepository.consume.mockResolvedValue({
+        userId: 'user-1',
+      });
+      userRepository.resetPassword.mockResolvedValue(null);
+      unitOfWork.run.mockImplementation(
+        (work: (tx: typeof fakeTx) => Promise<void>) => work(fakeTx),
+      );
+
+      await expect(
+        service.resetPassword({
+          token: 'valid-token',
+          password: PASSWORD,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(refreshTokenRepository.revokeAllByUser).not.toHaveBeenCalled();
     });
   });
 });

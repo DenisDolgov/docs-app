@@ -13,6 +13,8 @@ export const authRoute = {
   me: 'me',
   verifyEmail: 'email/verify',
   resendEmail: 'email/resend',
+  requestPasswordReset: 'password/forgot',
+  resetPassword: 'password/reset',
 } as const;
 
 export const authPaths = {
@@ -24,4 +26,6 @@ export const authPaths = {
   me: `/${base}/me`,
   verifyEmail: `/${base}/email/verify`,
   resendEmail: `/${base}/email/resend`,
+  requestPasswordReset: `/${base}/password/forgot`,
+  resetPassword: `/${base}/password/reset`,
 } as const;

@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { DATABASE, Database } from '../database/database.constants';
+import {
+  DATABASE,
+  type Database,
+  type DbExecutor,
+} from '../database/database.constants';
 import type { RefreshTokenRevokeReason } from '../database/schema';
 import * as schema from '../database/schema';
 
@@ -65,14 +69,23 @@ export class RefreshTokenRepository {
       .where(eq(schema.refreshTokens.sessionId, sessionId));
   }
 
-  async revokeAllByUser(userId: string, reason: RefreshTokenRevokeReason) {
-    await this.db
+  async revokeAllByUser(
+    userId: string,
+    reason: RefreshTokenRevokeReason,
+    db: DbExecutor = this.db,
+  ) {
+    await db
       .update(schema.refreshTokens)
       .set({
         revokedAt: new Date(),
         revokedReason: reason,
       })
-      .where(eq(schema.refreshTokens.userId, userId));
+      .where(
+        and(
+          eq(schema.refreshTokens.userId, userId),
+          isNull(schema.refreshTokens.revokedAt),
+        ),
+      );
   }
 
   async create(data: typeof schema.refreshTokens.$inferInsert) {

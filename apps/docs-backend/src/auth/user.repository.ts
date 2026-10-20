@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
-import { DATABASE, Database } from '../database/database.constants';
+import {
+  DATABASE,
+  type Database,
+  type DbExecutor,
+} from '../database/database.constants';
 import * as schema from '../database/schema';
 
 @Injectable()
@@ -12,15 +16,6 @@ export class UserRepository {
     return this.db.query.users.findFirst({
       where: { email },
     });
-  }
-
-  public async create(data: typeof schema.users.$inferInsert) {
-    const [user] = await this.db
-      .insert(schema.users)
-      .values(data)
-      .returning({ id: schema.users.id, email: schema.users.email });
-
-    return user;
   }
 
   // Регистрация — одна единица работы: если токен не записался, пользователя
@@ -42,6 +37,23 @@ export class UserRepository {
 
       return created;
     });
+  }
+
+  async resetPassword(
+    id: string,
+    passwordHash: string,
+    db: DbExecutor = this.db,
+  ) {
+    const [userRecord] = await db
+      .update(schema.users)
+      .set({ passwordHash })
+      // todo когда добавим верификацию подтверждения почты нужно будет добавить проверку isNotNull(schema.users.emailVerifiedAt)
+      .where(eq(schema.users.id, id))
+      .returning({ id: schema.users.id });
+
+    // Пользователь мог быть удалён между погашением токена и обновлением
+    // сервис обязан превратить это в BadRequestException, а не в 500.
+    return userRecord ?? null;
   }
 
   public async findById(id: string) {

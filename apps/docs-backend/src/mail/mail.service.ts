@@ -6,8 +6,7 @@ import type {
   MailProvider,
   OutgoingMail,
   SendOrganizationInviteParams,
-  SendPasswordResetParams,
-  SendVerificationParams,
+  SendTokenMailParams,
 } from './mail.models';
 import { organizationInviteTemplate } from './templates/organization-invite';
 import { passwordResetTemplate } from './templates/password-reset';
@@ -24,7 +23,7 @@ export class MailService {
     return this.mailProvider.send(message);
   }
 
-  sendVerification({ to, token, ttlHours }: SendVerificationParams) {
+  sendVerification({ to, token, ttlHours }: SendTokenMailParams) {
     return this.deliver(
       to,
       verificationTemplate({
@@ -35,10 +34,14 @@ export class MailService {
     );
   }
 
-  sendPasswordReset({ to, token }: SendPasswordResetParams) {
+  sendPasswordReset({ to, token, ttlHours }: SendTokenMailParams) {
     return this.deliver(
       to,
-      passwordResetTemplate({ to, link: this.link('/reset-password', token) }),
+      passwordResetTemplate({
+        to,
+        link: this.link('/reset-password', token),
+        ttlHours,
+      }),
     );
   }
 

@@ -3,7 +3,12 @@ import { defineRelations } from 'drizzle-orm';
 import { documentSnapshots, documentUpdates } from './collab';
 import { documents } from './documents';
 import { organizationMembers, organizations } from './organizations';
-import { emailVerificationTokens, refreshTokens, users } from './users';
+import {
+  emailVerificationTokens,
+  passwordResetTokens,
+  refreshTokens,
+  users,
+} from './users';
 
 export { collabSchema, documentSnapshots, documentUpdates } from './collab';
 export { documents, documentsSchema } from './documents';
@@ -16,6 +21,7 @@ export {
 export {
   authSchema,
   emailVerificationTokens,
+  passwordResetTokens,
   type RefreshTokenRevokeReason,
   refreshTokenRevokeReasonEnum,
   refreshTokens,
@@ -28,6 +34,7 @@ export const relations = defineRelations(
     users,
     refreshTokens,
     emailVerificationTokens,
+    passwordResetTokens,
     organizations,
     organizationMembers,
     documentUpdates,

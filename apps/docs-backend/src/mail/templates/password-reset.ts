@@ -1,15 +1,16 @@
-import { PASSWORD_RESET_LINK_TTL_HOURS } from '../mail.constants';
 import type { RenderedMail } from '../mail.models';
 import { button, paragraph, plainLink, renderLayout } from './layout';
 
 export const passwordResetTemplate = ({
   to,
   link,
+  ttlHours,
 }: {
   to: string;
   link: string;
+  ttlHours: number;
 }): RenderedMail => {
-  const ttl = `${PASSWORD_RESET_LINK_TTL_HOURS} ч.`;
+  const ttl = `${ttlHours} ч.`;
 
   return {
     subject: 'Сброс пароля',

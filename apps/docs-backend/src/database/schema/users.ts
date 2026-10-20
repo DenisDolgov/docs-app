@@ -14,7 +14,7 @@ export const authSchema = snakeCase.schema('auth');
 // pgEnum; union-тип выводим из него (см. AGENTS бэкенда).
 export const refreshTokenRevokeReasonEnum = pgEnum(
   'refresh_token_revoke_reason',
-  ['rotated', 'logout', 'logout_all', 'reuse'],
+  ['rotated', 'logout', 'logout_all', 'reuse', 'password_reset'],
 );
 export type RefreshTokenRevokeReason =
   (typeof refreshTokenRevokeReasonEnum.enumValues)[number];
@@ -49,4 +49,17 @@ export const emailVerificationTokens = authSchema.table(
     usedAt: timestamp({ withTimezone: true }),
   },
   (table) => [index('email_verification_tokens_user_id_idx').on(table.userId)],
+);
+
+export const passwordResetTokens = authSchema.table(
+  'password_reset_tokens',
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    userId: uuid().notNull(),
+    tokenHash: text().notNull().unique(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    usedAt: timestamp({ withTimezone: true }),
+  },
+  (table) => [index('password_reset_tokens_user_id_idx').on(table.userId)],
 );

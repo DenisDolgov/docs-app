@@ -109,7 +109,11 @@ describe('mail: шаблоны писем', () => {
       token: TOKEN,
       ttlHours: 24,
     });
-    await mail.sendPasswordReset({ to: RECIPIENT, token: TOKEN });
+    await mail.sendPasswordReset({
+      to: RECIPIENT,
+      token: TOKEN,
+      ttlHours: 1,
+    });
 
     await waitFor(async () => (await inbox()).length === 2);
     const messages = await parseInbox();

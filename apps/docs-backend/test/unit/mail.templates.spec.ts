@@ -102,7 +102,7 @@ describe('MailService: шаблоны писем (unit)', () => {
       const verificationSubject = lastMail().subject;
 
       provider.send.mockClear();
-      await service.sendPasswordReset({ to: TO, token: TOKEN });
+      await service.sendPasswordReset({ to: TO, token: TOKEN, ttlHours: 1 });
 
       const mail = lastMail();
       expect(linkIn(mail.text, '/reset-password')).toBe(

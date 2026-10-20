@@ -13,15 +13,10 @@ export interface MailProvider {
   send(mail: OutgoingMail): Promise<SentMail>;
 }
 
-export interface SendVerificationParams {
+export interface SendTokenMailParams {
   to: string;
   token: string;
   ttlHours: number;
-}
-
-export interface SendPasswordResetParams {
-  to: string;
-  token: string;
 }
 
 export interface SendOrganizationInviteParams {

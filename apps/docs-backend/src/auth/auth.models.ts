@@ -21,3 +21,8 @@ export interface SendEmailVerificationParams {
   id: string;
   email: string;
 }
+
+export interface ResetPasswordParams {
+  password: string;
+  token: string;
+}

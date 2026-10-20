@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 
 import { DATABASE } from './database.constants';
 import { relations } from './schema';
+import { UnitOfWork } from './unit-of-work';
 
 @Module({
   providers: [
@@ -25,8 +26,9 @@ import { relations } from './schema';
           relations,
         }),
     },
+    UnitOfWork,
   ],
-  exports: [DATABASE],
+  exports: [DATABASE, UnitOfWork],
 })
 export class DatabaseModule implements OnModuleDestroy {
   constructor(private readonly pool: Pool) {}

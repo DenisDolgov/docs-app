@@ -4,10 +4,12 @@ import { JwtModule } from '@nestjs/jwt';
 
 import { DatabaseModule } from '../database/database.module';
 import { MailModule } from '../mail/mail.module';
+import { ACCESS_TOKEN_TTL } from './auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { EmailVerificationTokenRepository } from './email-verification-token.repository';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { PasswordResetTokenRepository } from './password-reset-token.repository';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { UserRepository } from './user.repository';
 
@@ -19,7 +21,7 @@ import { UserRepository } from './user.repository';
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow('JWT_ACCESS_SECRET'),
         signOptions: {
-          expiresIn: '15m',
+          expiresIn: ACCESS_TOKEN_TTL,
         },
       }),
     }),
@@ -29,6 +31,7 @@ import { UserRepository } from './user.repository';
     UserRepository,
     RefreshTokenRepository,
     EmailVerificationTokenRepository,
+    PasswordResetTokenRepository,
     JwtAuthGuard,
     AuthService,
   ],

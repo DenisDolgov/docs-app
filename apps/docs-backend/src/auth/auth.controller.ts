@@ -1,6 +1,10 @@
 import {
   loginDto,
+  RequestPasswordResetDto,
+  ResetPasswordDto,
   registerDto,
+  requestPasswordResetDto,
+  resetPasswordDto,
   userResponseDto,
   VerifyEmailDto,
   verifyEmailDto,
@@ -138,6 +142,22 @@ export class AuthController {
       id: user.sub,
       email: user.email,
     });
+  }
+
+  @Post(authRoute.resetPassword)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  resetPassword(@Body({ schema: resetPasswordDto }) body: ResetPasswordDto) {
+    return this.authService.resetPassword(body);
+  }
+
+  @Post(authRoute.requestPasswordReset)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  requestPasswordReset(
+    @Body({ schema: requestPasswordResetDto }) {
+      email,
+    }: RequestPasswordResetDto,
+  ) {
+    return this.authService.requestPasswordReset(email);
   }
 
   private setAccessTokenCookie(res: Response, accessToken: string) {
