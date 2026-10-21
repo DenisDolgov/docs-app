@@ -24,6 +24,7 @@ import {
 } from './auth.constants';
 import {
   LoginParams,
+  ProfileView,
   RegisterParams,
   ResetPasswordParams,
   SendEmailVerificationParams,
@@ -285,6 +286,21 @@ export class AuthService implements OnModuleInit {
         tx,
       );
     });
+  }
+
+  // TODO(вынос): проверка «пользователь из токена ещё существует» дублирует
+  // EmailVerificationPolicy. Появится третий потребитель — вынести общий
+  // getUserOrThrow в AuthService/UserRepository.
+  async getProfile(id: string): Promise<ProfileView> {
+    const userRecord = await this.userRepository.findById(id);
+
+    if (!userRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+
+    return {
+      id: userRecord.id,
+      email: userRecord.email,
+      emailVerified: !!userRecord.emailVerifiedAt,
+    };
   }
 
   private createVerificationToken() {

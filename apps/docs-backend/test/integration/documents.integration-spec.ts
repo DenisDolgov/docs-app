@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AuthService } from '../../src/auth/auth.service';
+import { UserRepository } from '../../src/auth/user.repository';
 import { DATABASE, type Database } from '../../src/database/database.constants';
 import { DocumentService } from '../../src/document/document.service';
 import { OrganizationService } from '../../src/organization/organization.service';
@@ -14,6 +15,7 @@ const nextEmail = () => `user-${randomUUID()}@example.com`;
 
 describe('documents (integration)', () => {
   let auth: AuthService;
+  let users: UserRepository;
   let organizationService: OrganizationService;
   let documentService: DocumentService;
   let db: Database;
@@ -22,6 +24,9 @@ describe('documents (integration)', () => {
   const register = async () => {
     const email = nextEmail();
     const user = await auth.register({ email, password: PASSWORD });
+
+    // Организацию создаёт только подтверждённый пользователь
+    await users.markEmailVerified(user.id);
 
     return { email, id: user.id };
   };
@@ -33,6 +38,7 @@ describe('documents (integration)', () => {
     const moduleRef = await createTestingModule();
 
     auth = moduleRef.get(AuthService);
+    users = moduleRef.get(UserRepository);
     organizationService = moduleRef.get(OrganizationService);
     documentService = moduleRef.get(DocumentService);
     db = moduleRef.get(DATABASE);

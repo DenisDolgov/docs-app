@@ -26,3 +26,9 @@ export interface ResetPasswordParams {
   password: string;
   token: string;
 }
+
+export interface ProfileView {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+}

@@ -3,6 +3,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { UserRepository } from '../../src/auth/user.repository';
 import { createTestApp, readAccessToken } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
@@ -15,9 +16,14 @@ describe('documents (e2e)', () => {
   const registerAndLogin = async () => {
     const email = nextEmail();
 
-    await request(app.getHttpServer())
+    const registered = await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email, password: PASSWORD });
+
+    expect(registered.status).toBe(201);
+
+    // Организацию создаёт только подтверждённый пользователь.
+    await app.get(UserRepository).markEmailVerified(registered.body.id);
 
     const res = await request(app.getHttpServer())
       .post('/auth/login')

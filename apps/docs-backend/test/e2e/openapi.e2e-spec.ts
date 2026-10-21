@@ -70,6 +70,10 @@ describe('openapi (e2e)', () => {
       .set('Authorization', `Bearer ${readAccessToken(login)}`);
 
     expect(me.status).toBe(200);
-    expect(Object.keys(me.body).sort()).toEqual(['email', 'id']);
+    expect(Object.keys(me.body).sort()).toEqual([
+      'email',
+      'emailVerified',
+      'id',
+    ]);
   });
 });

@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { AuthService } from '../../src/auth/auth.service';
+import { UserRepository } from '../../src/auth/user.repository';
 import { DATABASE, type Database } from '../../src/database/database.constants';
 import { OrganizationService } from '../../src/organization/organization.service';
 import { OrganizationMemberRepository } from '../../src/organization/organization-member.repository';
@@ -14,6 +15,7 @@ const nextEmail = () => `user-${randomUUID()}@example.com`;
 
 describe('organizations (integration)', () => {
   let auth: AuthService;
+  let users: UserRepository;
   let organizationService: OrganizationService;
   let memberService: OrganizationMemberRepository;
   let db: Database;
@@ -23,6 +25,10 @@ describe('organizations (integration)', () => {
     const email = nextEmail();
     const user = await auth.register({ email, password: PASSWORD });
 
+    // Организацию создаёт только подтверждённый пользователь.
+    // Старые сценарии проверяют членство и роли, поэтому адрес подтверждён.
+    await users.markEmailVerified(user.id);
+
     return { email, id: user.id };
   };
 
@@ -30,6 +36,7 @@ describe('organizations (integration)', () => {
     const moduleRef = await createTestingModule();
 
     auth = moduleRef.get(AuthService);
+    users = moduleRef.get(UserRepository);
     organizationService = moduleRef.get(OrganizationService);
     memberService = moduleRef.get(OrganizationMemberRepository);
     db = moduleRef.get(DATABASE);

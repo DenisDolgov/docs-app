@@ -47,7 +47,6 @@ export class UserRepository {
     const [userRecord] = await db
       .update(schema.users)
       .set({ passwordHash })
-      // todo когда добавим верификацию подтверждения почты нужно будет добавить проверку isNotNull(schema.users.emailVerifiedAt)
       .where(eq(schema.users.id, id))
       .returning({ id: schema.users.id });
 

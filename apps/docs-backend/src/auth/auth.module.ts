@@ -7,6 +7,7 @@ import { MailModule } from '../mail/mail.module';
 import { ACCESS_TOKEN_TTL } from './auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EmailVerificationPolicy } from './email-verification-policy';
 import { EmailVerificationTokenRepository } from './email-verification-token.repository';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PasswordResetTokenRepository } from './password-reset-token.repository';
@@ -34,8 +35,9 @@ import { UserRepository } from './user.repository';
     PasswordResetTokenRepository,
     JwtAuthGuard,
     AuthService,
+    EmailVerificationPolicy,
   ],
-  exports: [UserRepository, JwtAuthGuard, JwtModule],
+  exports: [UserRepository, JwtAuthGuard, JwtModule, EmailVerificationPolicy],
   controllers: [AuthController],
 })
 export class AuthModule {}

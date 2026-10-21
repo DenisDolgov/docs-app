@@ -6,6 +6,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { EmailVerificationPolicy } from '../../src/auth/email-verification-policy';
 import { UserRepository } from '../../src/auth/user.repository';
 import { OrganizationRepository } from '../../src/organization/organization.repository';
 import { OrganizationService } from '../../src/organization/organization.service';
@@ -32,6 +33,12 @@ const organizationMembersRepository = {
 const usersRepository = {
   findByIds: vi.fn(),
   findByEmail: vi.fn(),
+};
+
+// Проверку флага испытывает отдельная спека политики; здесь важно лишь, что
+// организация создаётся после того, как политика пропустила создателя.
+const emailVerificationPolicy = {
+  assertEmailVerified: vi.fn(),
 };
 
 const actorWithRole = (role: string, actorId = OWNER_ID) => {
@@ -62,6 +69,10 @@ describe('OrganizationsService', () => {
           useValue: organizationMembersRepository,
         },
         { provide: UserRepository, useValue: usersRepository },
+        {
+          provide: EmailVerificationPolicy,
+          useValue: emailVerificationPolicy,
+        },
       ],
     }).compile();
 

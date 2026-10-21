@@ -6,3 +6,4 @@ export const EMAIL_VERIFICATION_TOKEN_INVALID_ERROR =
   'Email verification token is invalid or expired';
 export const PASSWORD_RESET_TOKEN_INVALID_ERROR =
   'Password reset token is invalid or expired';
+export const EMAIL_NOT_VERIFIED_ERROR = 'Email is not verified';

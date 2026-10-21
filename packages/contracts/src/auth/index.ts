@@ -34,9 +34,15 @@ export const requestPasswordResetDto = z.object({
   email: z.email(),
 });
 
+export const meResponseDto = z.object({
+  ...userResponseDto.shape,
+  emailVerified: z.boolean(),
+});
+
 export type LoginDto = z.infer<typeof loginDto>;
 export type RegisterDto = z.infer<typeof registerDto>;
 export type VerifyEmailDto = z.infer<typeof verifyEmailDto>;
 export type ResetPasswordDto = z.infer<typeof resetPasswordDto>;
 export type RequestPasswordResetDto = z.infer<typeof requestPasswordResetDto>;
+export type MeResponseDto = z.infer<typeof meResponseDto>;
 export type User = z.infer<typeof userResponseDto>;

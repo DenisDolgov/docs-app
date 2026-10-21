@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { EmailVerificationPolicy } from '../auth/email-verification-policy';
 import { UserRepository } from '../auth/user.repository';
 import { normalizeEmail } from '../common/utils/email';
 import {
@@ -31,11 +32,15 @@ export class OrganizationService {
     private readonly organizationRepository: OrganizationRepository,
     private readonly organizationMemberRepository: OrganizationMemberRepository,
     private readonly userRepository: UserRepository,
+    private readonly emailVerificationPolicy: EmailVerificationPolicy,
   ) {}
 
   public async create({ userId, name }: CreateOrganizationParams) {
+    await this.emailVerificationPolicy.assertEmailVerified(userId);
+
     const { id: organizationId, name: organizationName } =
       await this.organizationRepository.create({ name });
+
     await this.organizationMemberRepository.create({
       userId,
       organizationId,
@@ -61,6 +66,8 @@ export class OrganizationService {
     const actorMember = await this.assertActorMember(organizationId, actorId);
 
     if (!canManageMembers(actorMember.role)) throw new ForbiddenException();
+
+    await this.emailVerificationPolicy.assertEmailVerified(actorId);
 
     const user = await this.userRepository.findByEmail(normalizeEmail(email));
 

@@ -1,5 +1,6 @@
 import {
   loginDto,
+  meResponseDto,
   RequestPasswordResetDto,
   ResetPasswordDto,
   registerDto,
@@ -117,13 +118,10 @@ export class AuthController {
 
   @Get(authRoute.me)
   @UseGuards(JwtAuthGuard)
-  @SerializeOptions({ schema: userResponseDto })
-  @ApiOkResponse({ standardSchema: userResponseDto })
+  @SerializeOptions({ schema: meResponseDto })
+  @ApiOkResponse({ standardSchema: meResponseDto })
   me(@CurrentUser() user: AccessTokenPayload) {
-    return {
-      email: user.email,
-      id: user.sub,
-    };
+    return this.authService.getProfile(user.sub);
   }
 
   @Post(authRoute.verifyEmail)

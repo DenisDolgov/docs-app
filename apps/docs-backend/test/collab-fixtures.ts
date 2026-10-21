@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { expect } from 'vitest';
 
+import { UserRepository } from '../src/auth/user.repository';
 import { readAccessToken } from './utils';
 
 export const PASSWORD = 'correct horse battery staple';
@@ -21,7 +23,14 @@ export const registerAndLogin = async (
 ): Promise<Session> => {
   const email = nextEmail();
 
-  await http(app).post('/auth/register').send({ email, password: PASSWORD });
+  const registered = await http(app)
+    .post('/auth/register')
+    .send({ email, password: PASSWORD });
+
+  expect(registered.status).toBe(201);
+
+  // Организацию создаёт только подтверждённый пользователь.
+  await app.get(UserRepository).markEmailVerified(registered.body.id);
 
   const login = await http(app)
     .post('/auth/login')
