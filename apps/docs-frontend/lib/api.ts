@@ -1,7 +1,7 @@
 // Тонкий клиент нашего REST API. Access- и refresh-токены живут в httpOnly-куках,
 // которые браузер шлёт сам при `credentials: 'include'`; JS их не читает.
 
-import type { User } from '@docs-app/contracts/auth';
+import type { MeResponseDto } from '@docs-app/contracts/auth';
 import { authPaths } from '@docs-app/contracts/auth/routes';
 import type { ProblemDetails } from '@docs-app/contracts/http';
 
@@ -15,6 +15,10 @@ import {
 export type { DocumentDto } from '@docs-app/contracts/document';
 export type { OrganizationDto } from '@docs-app/contracts/organization';
 
+// Профиль пользователя: `/auth/me` отдаёт больше, чем ответ регистрации
+// (например, `emailVerified`), и именно эта форма нужна интерфейсу.
+export type User = MeResponseDto;
+
 export {
   ACCESS_COOKIE_NAME,
   API_URL,
@@ -27,7 +31,6 @@ export {
   setSessionExpiredHandler,
   TransientError,
 } from './auth-session';
-export type { User };
 
 // Ошибка API несёт разобранный problem+json (RFC 9457).
 export class ApiError extends Error {
@@ -140,7 +143,7 @@ export const login = async (email: string, password: string): Promise<User> => {
 export const register = async (
   email: string,
   password: string,
-): Promise<User> => {
+): Promise<void> => {
   const response = await fetch(`${API_URL}${authPaths.register}`, {
     method: 'POST',
     credentials: 'include',
@@ -151,8 +154,6 @@ export const register = async (
   if (!response.ok) {
     throw await toApiError(response);
   }
-
-  return (await response.json()) as User;
 };
 
 export const logout = async (): Promise<void> => {
@@ -161,6 +162,39 @@ export const logout = async (): Promise<void> => {
     credentials: 'include',
   }).catch(() => undefined);
 };
+
+export const logoutAll = async (): Promise<void> => {
+  await fetch(`${API_URL}${authPaths.logoutAll}`, {
+    method: 'POST',
+    credentials: 'include',
+  }).catch(() => undefined);
+};
+
+// POST, который по контракту отвечает 204: тело не читаем, ошибки — в ApiError.
+const postNoContent = async (path: string, body?: unknown): Promise<void> => {
+  const response = await apiFetch(path, {
+    method: 'POST',
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+};
+
+// Всегда 204, даже если почта не зарегистрирована: ответ не должен выдавать
+// существование аккаунта.
+export const requestPasswordReset = (email: string): Promise<void> =>
+  postNoContent(authPaths.requestPasswordReset, { email });
+
+export const resetPassword = (token: string, password: string): Promise<void> =>
+  postNoContent(authPaths.resetPassword, { token, password });
+
+export const verifyEmail = (token: string): Promise<void> =>
+  postNoContent(authPaths.verifyEmail, { token });
+
+export const resendVerificationEmail = (): Promise<void> =>
+  postNoContent(authPaths.resendEmail);
 
 export const fetchMe = async (): Promise<User> => {
   return apiJson<User>(authPaths.me);

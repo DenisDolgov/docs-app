@@ -15,8 +15,10 @@ import {
 import {
   login as apiLogin,
   logout as apiLogout,
+  logoutAll as apiLogoutAll,
   register as apiRegister,
   bootstrapUser,
+  fetchMe,
   setSessionExpiredHandler,
   type User,
 } from '@/lib/api';
@@ -29,11 +31,28 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
+  // Перечитать профиль: нужен после подтверждения почты, чтобы флаги
+  // (`emailVerified`) в интерфейсе обновились без перезагрузки страницы.
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const authRoutes = ['/login', '/register'];
+// Доступны без сессии: сброс пароля и подтверждение почты открываются по
+// ссылке из письма, в том числе в браузере без активной сессии.
+const publicAuthRoutes = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+];
+
+// Со страниц входа и регистрации авторизованного пользователя уводим на
+// главную. Остальные публичные страницы открываются как есть: иначе переход
+// по ссылке подтверждения из письма молча пропускался бы.
+const guestOnlyRoutes = ['/login', '/register'];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
@@ -73,33 +92,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setStatus('unauthenticated');
   }, []);
 
+  const logoutAll = useCallback(async () => {
+    await apiLogoutAll();
+    setUser(null);
+    setStatus('unauthenticated');
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const restored = await fetchMe();
+    setUser(restored);
+    setStatus('authenticated');
+  }, []);
+
   // Жёсткий конец сессии (refresh вернул 401) — сбрасываем состояние и уходим
-  // на /login. Дедупликация живёт в `auth-session`.
+  // на /login. С публичных страниц (ссылка из письма) не уводим: сессия там не
+  // нужна, а редирект съел бы результат подтверждения или сброса пароля.
+  // Дедупликация живёт в `auth-session`.
   useEffect(() => {
     setSessionExpiredHandler(() => {
       setUser(null);
       setStatus('unauthenticated');
-      router.replace('/login');
+
+      if (!publicAuthRoutes.includes(pathname)) {
+        router.replace('/login');
+      }
     });
-  }, [router]);
+  }, [pathname, router]);
 
   // Навигационный гейт на клиенте: серверный прокси проверяет только наличие
   // access-куки, а здесь сессия подтверждается вызовом /auth/me (+ refresh).
   useEffect(() => {
     if (status === 'loading') return;
 
-    const onAuthRoute = authRoutes.includes(pathname);
+    const isPublic = publicAuthRoutes.includes(pathname);
 
-    if (status === 'unauthenticated' && !onAuthRoute) {
+    if (status === 'unauthenticated' && !isPublic) {
       router.replace('/login');
-    } else if (status === 'authenticated' && onAuthRoute) {
+    } else if (
+      status === 'authenticated' &&
+      guestOnlyRoutes.includes(pathname)
+    ) {
       router.replace('/');
     }
   }, [status, pathname, router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, register, logout }),
-    [user, status, login, register, logout],
+    () => ({
+      user,
+      status,
+      login,
+      register,
+      logout,
+      logoutAll,
+      refreshUser,
+    }),
+    [user, status, login, register, logout, logoutAll, refreshUser],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

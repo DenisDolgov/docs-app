@@ -6,6 +6,7 @@ import { DocumentsTable } from '@/app/(home)/documents-table';
 import { HomeNavbar } from '@/app/(home)/home-navbar';
 import { TemplatesGallery } from '@/app/(home)/templates-gallery';
 import { useAuth } from '@/components/auth-provider';
+import { EmailVerificationBanner } from '@/components/email-verification-banner';
 import type { DocumentDto } from '@/lib/api';
 import { listDocuments } from '@/lib/documents';
 
@@ -35,6 +36,7 @@ const Home = () => {
         <HomeNavbar />
       </div>
       <div className="mt-16">
+        <EmailVerificationBanner />
         <TemplatesGallery onCreated={reload} />
         <DocumentsTable
           documents={documents}

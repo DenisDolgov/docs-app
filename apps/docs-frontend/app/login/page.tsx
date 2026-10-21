@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { ApiError } from '@/lib/api';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -35,8 +36,12 @@ const LoginPage = () => {
 
     try {
       await login(email, password);
-    } catch {
-      setError('Неверная почта или пароль');
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 401) {
+        setError('Неверная почта или пароль');
+      } else {
+        setError('Не удалось войти. Попробуйте ещё раз.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -77,6 +82,14 @@ const LoginPage = () => {
                 />
                 {error && <FieldError>{error}</FieldError>}
               </Field>
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                >
+                  Забыли пароль?
+                </Link>
+              </div>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Spinner />}
                 Войти

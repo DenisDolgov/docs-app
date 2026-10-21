@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from '@/components/auth-provider';
 import { apiJson, type OrganizationDto } from '@/lib/api';
+import { createOrganization as apiCreateOrganization } from '@/lib/organizations';
 
 const STORAGE_KEY = 'docs.currentOrganizationId';
 
@@ -22,6 +23,7 @@ interface OrganizationContextValue {
   currentOrganization: OrganizationDto | null;
   setCurrentOrganizationId: (organizationId: string | null) => void;
   refreshOrganizations: () => Promise<void>;
+  createOrganization: (name: string) => Promise<OrganizationDto>;
 }
 
 const OrganizationContext = createContext<OrganizationContextValue | null>(
@@ -67,6 +69,27 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
     [],
   );
 
+  const createOrganization = useCallback(
+    async (name: string) => {
+      const created = await apiCreateOrganization(name);
+      const createdOrganization = { ...created, role: 'owner' } as const;
+
+      // Создатель точно становится owner. Кладём организацию в список сразу,
+      // чтобы выбрать её даже при сбое повторного GET; refresh потом сгладит
+      // расхождения.
+      setOrganizations((current) =>
+        current.some((organization) => organization.id === created.id)
+          ? current
+          : [...current, createdOrganization],
+      );
+      setCurrentOrganizationId(created.id);
+      await refreshOrganizations().catch(() => undefined);
+
+      return createdOrganization;
+    },
+    [refreshOrganizations, setCurrentOrganizationId],
+  );
+
   // Выбранная организация может исчезнуть (вышел из неё / удалена) —
   // возвращаемся к личному контексту.
   useEffect(() => {
@@ -94,6 +117,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       currentOrganization,
       setCurrentOrganizationId,
       refreshOrganizations,
+      createOrganization,
     }),
     [
       organizations,
@@ -101,6 +125,7 @@ export const OrganizationProvider = ({ children }: { children: ReactNode }) => {
       currentOrganization,
       setCurrentOrganizationId,
       refreshOrganizations,
+      createOrganization,
     ],
   );
 
