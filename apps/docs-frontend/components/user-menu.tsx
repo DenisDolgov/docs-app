@@ -4,11 +4,13 @@ import {
   CircleUserIcon,
   LogOutIcon,
   MailWarningIcon,
+  MonitorSmartphoneIcon,
   MonitorXIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAuth } from '@/components/auth-provider';
+import { SessionsDialog } from '@/components/sessions-dialog';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -25,6 +27,7 @@ import { resendVerificationEmail } from '@/lib/api';
 export const UserMenu = () => {
   const { user, logout, logoutAll } = useAuth();
   const [isSending, setIsSending] = useState(false);
+  const [isSessionsOpen, setIsSessionsOpen] = useState(false);
 
   if (!user) return null;
 
@@ -49,38 +52,46 @@ export const UserMenu = () => {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <CircleUserIcon className="size-5" />
-          </Button>
-        }
-      />
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="max-w-[220px] truncate">
-          {user.email}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {!user.emailVerified && (
-          <DropdownMenuItem onClick={handleResend} disabled={isSending}>
-            {isSending ? (
-              <Spinner className="size-4" />
-            ) : (
-              <MailWarningIcon className="size-4" />
-            )}
-            Подтвердить почту
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <CircleUserIcon className="size-5" />
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel className="max-w-[220px] truncate">
+            {user.email}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {!user.emailVerified && (
+            <DropdownMenuItem onClick={handleResend} disabled={isSending}>
+              {isSending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <MailWarningIcon className="size-4" />
+              )}
+              Подтвердить почту
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={() => setIsSessionsOpen(true)}>
+            <MonitorSmartphoneIcon className="size-4" />
+            Устройства и сессии
           </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={() => logout()}>
-          <LogOutIcon className="size-4" />
-          Выйти
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => logoutAll()}>
-          <MonitorXIcon className="size-4" />
-          Выйти на всех устройствах
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => logout()}>
+            <LogOutIcon className="size-4" />
+            Выйти
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => logoutAll()}>
+            <MonitorXIcon className="size-4" />
+            Выйти на всех устройствах
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <SessionsDialog open={isSessionsOpen} onOpenChange={setIsSessionsOpen} />
+    </>
   );
 };

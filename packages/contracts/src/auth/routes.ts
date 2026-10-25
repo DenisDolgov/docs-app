@@ -2,6 +2,8 @@
 // (`@Controller(authRoute.base)`, `@Post(authRoute.login)`), полные пути —
 // клиент. Строки выводятся из `base`, чтобы не разъезжались.
 const base = 'auth';
+const sessionsSegment = 'sessions';
+const sessionParam = 'sessionId';
 
 export const authRoute = {
   base,
@@ -15,6 +17,9 @@ export const authRoute = {
   resendEmail: 'email/resend',
   requestPasswordReset: 'password/forgot',
   resetPassword: 'password/reset',
+  sessions: sessionsSegment,
+  sessionPattern: `/${sessionsSegment}/:${sessionParam}`,
+  sessionParam,
 } as const;
 
 export const authPaths = {
@@ -28,4 +33,6 @@ export const authPaths = {
   resendEmail: `/${base}/email/resend`,
   requestPasswordReset: `/${base}/password/forgot`,
   resetPassword: `/${base}/password/reset`,
+  sessions: `/${base}/${sessionsSegment}`,
+  session: (sessionId: string) => `/${base}/${sessionsSegment}/${sessionId}`,
 } as const;

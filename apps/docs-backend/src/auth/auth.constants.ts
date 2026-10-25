@@ -28,3 +28,15 @@ export const PASSWORD_RESET_TOKEN_TTL_HOURS = 1;
 export const PASSWORD_RESET_TOKEN_TTL = hoursToMilliseconds(
   PASSWORD_RESET_TOKEN_TTL_HOURS,
 );
+
+// User-Agent — управляемый клиентом заголовок: длину ограничиваем, чтобы одна
+// строка не раздувала БД и ответ списка устройств.
+export const SESSION_USER_AGENT_MAX_LENGTH = 512;
+
+// Истёкшие и отозванные токены нужны только для истории сессии (created_at,
+// первые метаданные), поэтому держим месяц и чистим раз в сутки.
+export const REFRESH_TOKEN_RETENTION_DAYS = 30;
+export const REFRESH_TOKEN_RETENTION = hoursToMilliseconds(
+  REFRESH_TOKEN_RETENTION_DAYS * 24,
+);
+export const REFRESH_TOKEN_GC_INTERVAL = hoursToMilliseconds(24);

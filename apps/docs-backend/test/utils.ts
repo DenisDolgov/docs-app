@@ -1,10 +1,9 @@
 import type { INestApplication, NestApplicationOptions } from '@nestjs/common';
-import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
-import cookieParser from 'cookie-parser';
 import type { Response } from 'supertest';
 
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/app.setup';
 import { ACCESS_COOKIE_NAME } from '../src/auth/auth.constants';
 
 // Access-токен больше не приходит в теле `login`/`refresh` — тесты читают его
@@ -55,15 +54,10 @@ export const createTestingModule = () => {
   }).compile();
 };
 
-// Повторяем конфигурацию приложения из `main.ts` (cookie parser + WsAdapter).
-// Без адаптера Nest при `init()` пытается поднять драйвер WebSocket по умолчанию
-// (`@nestjs/platform-socket.io`, не установлен) и вызывает `process.exit(1)`,
-// обрушивая тестовый воркер.
+// Повторяем конфигурацию приложения из `main.ts` через общий bootstrap-хелпер:
+// cookie parser и доверие прокси не должны разъезжаться с приложением.
 export const configureTestApp = <T extends INestApplication>(app: T): T => {
-  app.useWebSocketAdapter(new WsAdapter(app));
-  app.use(cookieParser());
-
-  return app;
+  return configureApp(app);
 };
 
 export const createTestApp = async (

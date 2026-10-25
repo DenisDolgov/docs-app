@@ -32,6 +32,8 @@ interface AuthContextValue {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<void>;
+  // Сессию уже закрыл сервер: чистим только локальное состояние.
+  expireSession: () => void;
   // Перечитать профиль: нужен после подтверждения почты, чтобы флаги
   // (`emailVerified`) в интерфейсе обновились без перезагрузки страницы.
   refreshUser: () => Promise<void>;
@@ -98,6 +100,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setStatus('unauthenticated');
   }, []);
 
+  // Отзыв текущей сессии из списка устройств: куки почистил бэкенд, поэтому
+  // API не зовём. На /login уводит навигационный гейт ниже.
+  const expireSession = useCallback(() => {
+    setUser(null);
+    setStatus('unauthenticated');
+  }, []);
+
   const refreshUser = useCallback(async () => {
     const restored = await fetchMe();
     setUser(restored);
@@ -144,9 +153,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       register,
       logout,
       logoutAll,
+      expireSession,
       refreshUser,
     }),
-    [user, status, login, register, logout, logoutAll, refreshUser],
+    [
+      user,
+      status,
+      login,
+      register,
+      logout,
+      logoutAll,
+      expireSession,
+      refreshUser,
+    ],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

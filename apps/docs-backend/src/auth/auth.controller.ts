@@ -6,6 +6,8 @@ import {
   registerDto,
   requestPasswordResetDto,
   resetPasswordDto,
+  sessionIdSchema,
+  sessionResponseDto,
   userResponseDto,
   VerifyEmailDto,
   verifyEmailDto,
@@ -14,9 +16,11 @@ import { authRoute } from '@docs-app/contracts/auth/routes';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   Res,
@@ -28,21 +32,21 @@ import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
 import { z } from 'zod';
 
-import {
-  ACCESS_COOKIE_NAME,
-  ACCESS_COOKIE_TTL,
-  REFRESH_COOKIE_NAME,
-  REFRESH_COOKIE_TTL,
-} from './auth.constants';
+import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from './auth.constants';
 import { AccessTokenPayload } from './auth.models';
 import { AuthService } from './auth.service';
+import { AuthCookieOptions } from './auth-cookie-options';
 import { CurrentUser } from './current-user.decorator';
 import { UNAUTHORIZED_ERROR } from './errors';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { readSessionMetadata } from './session-metadata';
 
 @Controller(authRoute.base)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly cookieOptions: AuthCookieOptions,
+  ) {}
 
   @Post(authRoute.register)
   @SerializeOptions({ schema: userResponseDto })
@@ -54,13 +58,16 @@ export class AuthController {
   @Post(authRoute.login)
   @HttpCode(HttpStatus.OK)
   async login(
+    @Req() req: Request,
     @Body({ schema: loginDto }) body: z.infer<typeof loginDto>,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { accessToken, refreshToken } = await this.authService.login(body);
+    const { accessToken, refreshToken } = await this.authService.login({
+      ...body,
+      ...readSessionMetadata(req),
+    });
 
-    this.setAccessTokenCookie(res, accessToken);
-    this.setRefreshTokenCookie(res, refreshToken);
+    this.setAuthCookies(res, accessToken, refreshToken);
   }
 
   @Post(authRoute.refresh)
@@ -80,8 +87,7 @@ export class AuthController {
       const { accessToken, refreshToken: newRefreshToken } =
         await this.authService.refresh(refreshToken);
 
-      this.setAccessTokenCookie(res, accessToken);
-      this.setRefreshTokenCookie(res, newRefreshToken);
+      this.setAuthCookies(res, accessToken, newRefreshToken);
     } catch (error) {
       // httpOnly-куки клиент удалить не может — чистит сервер.
       this.clearAuthCookies(res);
@@ -124,6 +130,40 @@ export class AuthController {
     return this.authService.getProfile(user.sub);
   }
 
+  // Текущую сессию определяем по refresh-куке: access-токен живёт 15 минут и
+  // не знает, из какого устройства он выдан.
+  @Get(authRoute.sessions)
+  @UseGuards(JwtAuthGuard)
+  @SerializeOptions({ schema: sessionResponseDto })
+  @ApiOkResponse({ standardSchema: sessionResponseDto, isArray: true })
+  listSessions(@CurrentUser() user: AccessTokenPayload, @Req() req: Request) {
+    return this.authService.listSessions(
+      user.sub,
+      req.cookies[REFRESH_COOKIE_NAME],
+    );
+  }
+
+  @Delete(authRoute.sessionPattern)
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeSession(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param(authRoute.sessionParam, { schema: sessionIdSchema })
+    sessionId: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const revokedCurrent = await this.authService.revokeSession(
+      user.sub,
+      sessionId,
+      req.cookies[REFRESH_COOKIE_NAME],
+    );
+
+    if (revokedCurrent) {
+      this.clearAuthCookies(res);
+    }
+  }
+
   @Post(authRoute.verifyEmail)
   @HttpCode(HttpStatus.NO_CONTENT)
   verifyEmail(
@@ -158,36 +198,17 @@ export class AuthController {
     return this.authService.requestPasswordReset(email);
   }
 
-  private setAccessTokenCookie(res: Response, accessToken: string) {
-    res.cookie(ACCESS_COOKIE_NAME, accessToken, {
-      httpOnly: true,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: ACCESS_COOKIE_TTL,
-      // Префикс `__Host-` требует Secure в любом окружении, иначе браузер
-      // отбросит куку; localhost браузеры считают доверенным origin.
-      secure: true,
-    });
-  }
-
-  private setRefreshTokenCookie(res: Response, refreshToken: string) {
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
-      httpOnly: true,
-      sameSite: 'strict',
-      path: '/auth',
-      maxAge: REFRESH_COOKIE_TTL,
-      secure: process.env.NODE_ENV === 'production',
-    });
+  private setAuthCookies(
+    res: Response,
+    accessToken: string,
+    refreshToken: string,
+  ) {
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, this.cookieOptions.access());
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, this.cookieOptions.refresh());
   }
 
   private clearAuthCookies(res: Response) {
-    res.clearCookie(ACCESS_COOKIE_NAME, {
-      path: '/',
-      secure: true,
-    });
-    res.clearCookie(REFRESH_COOKIE_NAME, {
-      path: '/auth',
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.clearCookie(ACCESS_COOKIE_NAME, this.cookieOptions.clearAccess());
+    res.clearCookie(REFRESH_COOKIE_NAME, this.cookieOptions.clearRefresh());
   }
 }

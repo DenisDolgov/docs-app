@@ -1,17 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { WsAdapter } from '@nestjs/platform-ws';
-import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
+import { configureApp } from './app.setup';
 import { setupOpenApi } from './openapi/setup-openapi';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = configureApp(await NestFactory.create(AppModule));
   app.useLogger(app.get(Logger));
-  app.use(cookieParser());
-  app.useWebSocketAdapter(new WsAdapter(app));
   app.enableShutdownHooks();
   setupOpenApi(app);
   const configService = app.get(ConfigService);

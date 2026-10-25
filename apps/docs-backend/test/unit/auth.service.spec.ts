@@ -12,6 +12,7 @@ import { AuthService } from '../../src/auth/auth.service';
 import { EmailVerificationTokenRepository } from '../../src/auth/email-verification-token.repository';
 import { PasswordResetTokenRepository } from '../../src/auth/password-reset-token.repository';
 import { RefreshTokenRepository } from '../../src/auth/refresh-token.repository';
+import { hashToken } from '../../src/auth/token';
 import { UserRepository } from '../../src/auth/user.repository';
 import { UnitOfWork } from '../../src/database/unit-of-work';
 import { MailService } from '../../src/mail/mail.service';
@@ -55,8 +56,10 @@ const refreshTokenRepository = {
   findByHash: vi.fn(),
   revokeByHash: vi.fn(),
   revokeActiveBySessionId: vi.fn(),
-  revokeBySessionId: vi.fn(),
+  revokeActiveForUser: vi.fn(),
   revokeAllByUser: vi.fn(),
+  listActiveSessions: vi.fn(),
+  deleteStale: vi.fn(),
 };
 
 const jwtService = {
@@ -72,6 +75,10 @@ describe('AuthService (unit)', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    unitOfWork.run.mockImplementation(
+      (work: (tx: unknown) => Promise<unknown>) => work({}),
+    );
 
     mailService.sendVerification.mockResolvedValue({ messageId: 'stub' });
     mailService.sendPasswordReset.mockResolvedValue({ messageId: 'stub' });
@@ -179,13 +186,13 @@ describe('AuthService (unit)', () => {
       );
     });
 
-    it('на отозванный токен отзывает всю сессию (reuse-детекция)', async () => {
+    it('на повторно предъявленный ротированный токен отзывает всю сессию', async () => {
       refreshTokenRepository.findByHash.mockResolvedValue({
         userId: 'user-1',
         sessionId: 'session-1',
         tokenHash: 'hash-1',
-        revokedAt: new Date(),
-        revokedReason: 'reuse',
+        revokedAt: new Date(Date.now() - 60_000),
+        revokedReason: 'rotated',
         expiresAt: new Date(Date.now() + 60_000),
       });
 
@@ -204,8 +211,8 @@ describe('AuthService (unit)', () => {
         userId: 'user-1',
         sessionId: 'session-1',
         tokenHash: 'hash-1',
-        revokedAt: new Date(),
-        revokedReason: 'logout',
+        revokedAt: new Date(Date.now() - 60_000),
+        revokedReason: 'rotated',
         expiresAt: new Date(Date.now() - 60_000),
       });
 
@@ -215,6 +222,24 @@ describe('AuthService (unit)', () => {
         'user-1',
         'reuse',
       );
+    });
+
+    it('не считает кражей токен, отозванный отзывом устройства', async () => {
+      refreshTokenRepository.findByHash.mockResolvedValue({
+        userId: 'user-1',
+        sessionId: 'session-1',
+        tokenHash: 'hash-1',
+        revokedAt: new Date(),
+        revokedReason: 'logout',
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+
+      await expect(service.refresh('logged-out')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+
+      // Иначе отзыв одного устройства сносил бы все сессии пользователя.
+      expect(refreshTokenRepository.revokeAllByUser).not.toHaveBeenCalled();
     });
 
     it('отвечает 401 на истёкший токен и не выпускает новый', async () => {
@@ -288,11 +313,12 @@ describe('AuthService (unit)', () => {
 
       const result = await service.refresh('valid');
 
-      expect(refreshTokenRepository.revokeByHash).toHaveBeenCalledWith(
-        'hash-1',
-        'rotated',
-      );
-      expect(refreshTokenRepository.create).toHaveBeenCalledWith(
+      expect(refreshTokenRepository.revokeByHash).toHaveBeenCalled();
+      const [revokedHash, revokedReason] =
+        refreshTokenRepository.revokeByHash.mock.calls[0] ?? [];
+      expect(revokedHash).toBe(hashToken('valid'));
+      expect(revokedReason).toBe('rotated');
+      expect(refreshTokenRepository.create.mock.calls[0]?.[0]).toEqual(
         expect.objectContaining({ userId: 'user-1', sessionId: 'session-1' }),
       );
       expect(result.accessToken).toBe('signed.access.token');
@@ -315,10 +341,11 @@ describe('AuthService (unit)', () => {
       const result = await service.refresh('racing');
 
       expect(refreshTokenRepository.revokeAllByUser).not.toHaveBeenCalled();
+      expect(refreshTokenRepository.revokeActiveBySessionId).toHaveBeenCalled();
       expect(
-        refreshTokenRepository.revokeActiveBySessionId,
-      ).toHaveBeenCalledWith('session-1', 'rotated');
-      expect(refreshTokenRepository.create).toHaveBeenCalledWith(
+        refreshTokenRepository.revokeActiveBySessionId.mock.calls[0]?.[0],
+      ).toBe('session-1');
+      expect(refreshTokenRepository.create.mock.calls[0]?.[0]).toEqual(
         expect.objectContaining({ userId: 'user-1', sessionId: 'session-1' }),
       );
       expect(result.accessToken).toBe('signed.access.token');
@@ -351,10 +378,12 @@ describe('AuthService (unit)', () => {
       refreshTokenRepository.findByHash.mockResolvedValue(null);
 
       await expect(service.logout('unknown')).resolves.toBeUndefined();
-      expect(refreshTokenRepository.revokeBySessionId).not.toHaveBeenCalled();
+      expect(
+        refreshTokenRepository.revokeActiveBySessionId,
+      ).not.toHaveBeenCalled();
     });
 
-    it('гасит сессию по session_id', async () => {
+    it('гасит живые токены сессии по session_id', async () => {
       refreshTokenRepository.findByHash.mockResolvedValue({
         userId: 'user-1',
         sessionId: 'session-1',
@@ -363,10 +392,9 @@ describe('AuthService (unit)', () => {
 
       await service.logout('valid');
 
-      expect(refreshTokenRepository.revokeBySessionId).toHaveBeenCalledWith(
-        'session-1',
-        'logout',
-      );
+      expect(
+        refreshTokenRepository.revokeActiveBySessionId,
+      ).toHaveBeenCalledWith('session-1', 'logout');
     });
   });
 

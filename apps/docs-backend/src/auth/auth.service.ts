@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 
 import { normalizeEmail } from '../common/utils/email';
+import type { DbExecutor } from '../database/database.constants';
 import { isUniqueViolation } from '../database/sql-errors';
 import { UnitOfWork } from '../database/unit-of-work';
 import { MailService } from '../mail/mail.service';
@@ -25,9 +26,13 @@ import {
 import {
   LoginParams,
   ProfileView,
+  RefreshTokenRecord,
   RegisterParams,
   ResetPasswordParams,
   SendEmailVerificationParams,
+  SessionMetadata,
+  SessionView,
+  TokenPair,
 } from './auth.models';
 import { EmailVerificationTokenRepository } from './email-verification-token.repository';
 import {
@@ -97,7 +102,7 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  async login({ email, password }: LoginParams) {
+  async login({ email, password, userAgent, ip }: LoginParams) {
     const normalizedEmail = normalizeEmail(email);
     const user = await this.userRepository.findByEmail(normalizedEmail);
 
@@ -111,7 +116,10 @@ export class AuthService implements OnModuleInit {
     if (!isVerify)
       throw new UnauthorizedException(INVALID_EMAIL_OR_PASSWORD_ERROR);
 
-    return this.issueTokens({ id: user.id, email: user.email });
+    return this.issueTokens({ id: user.id, email: user.email }, undefined, {
+      userAgent: userAgent ?? null,
+      ip: ip ?? null,
+    });
   }
 
   async refresh(refreshToken: string) {
@@ -122,29 +130,33 @@ export class AuthService implements OnModuleInit {
     if (!tokenRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
 
     if (tokenRecord.revokedAt) {
+      // Кража — это только повторно предъявленный «ротированный» токен.
+      // `logout`, `logout_all` и `password_reset` означают, что сессию погасили
+      // осознанно: на них отвечаем 401 и не трогаем остальные устройства.
+      if (tokenRecord.revokedReason !== 'rotated') {
+        throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+      }
+
       const withinGrace =
-        tokenRecord.revokedReason === 'rotated' &&
         Date.now() - tokenRecord.revokedAt.getTime() <= REFRESH_GRACE_PERIOD;
 
       if (withinGrace) {
-        const userRecord = await this.userRepository.findById(
-          tokenRecord.userId,
-        );
-
-        if (!userRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+        const userRecord = await this.getUserOrThrow(tokenRecord.userId);
 
         this.logger.warn(
           `Refresh-токен предъявлен повторно внутри grace-окна: sessionId=${tokenRecord.sessionId}`,
         );
 
-        // Преемника отзываем, а не сносим все сессии: клиент, скорее всего,
-        // просто не увидел ответ предыдущей ротации.
-        await this.refreshTokenRepository.revokeActiveBySessionId(
-          tokenRecord.sessionId,
-          'rotated',
+        const rotated = await this.rotateSession(
+          tokenRecord,
+          { id: userRecord.id, email: userRecord.email },
+          tokenHash,
+          'successor',
         );
 
-        return this.issueTokens(userRecord, tokenRecord.sessionId);
+        if (!rotated) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+
+        return rotated;
       }
 
       await this.refreshTokenRepository.revokeAllByUser(
@@ -158,19 +170,18 @@ export class AuthService implements OnModuleInit {
     if (tokenRecord.expiresAt < new Date())
       throw new UnauthorizedException(UNAUTHORIZED_ERROR);
 
-    const userRecord = await this.userRepository.findById(tokenRecord.userId);
+    const userRecord = await this.getUserOrThrow(tokenRecord.userId);
 
-    if (!userRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
-
-    const revokedTokenRecord = await this.refreshTokenRepository.revokeByHash(
-      tokenRecord.tokenHash,
-      'rotated',
+    const rotated = await this.rotateSession(
+      tokenRecord,
+      { id: userRecord.id, email: userRecord.email },
+      tokenHash,
+      'replace',
     );
 
-    if (!revokedTokenRecord)
-      throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+    if (!rotated) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
 
-    return this.issueTokens(userRecord, tokenRecord.sessionId);
+    return rotated;
   }
 
   async logout(refreshToken: string) {
@@ -179,7 +190,7 @@ export class AuthService implements OnModuleInit {
 
     if (!tokenRecord) return;
 
-    await this.refreshTokenRepository.revokeBySessionId(
+    await this.refreshTokenRepository.revokeActiveBySessionId(
       tokenRecord.sessionId,
       'logout',
     );
@@ -195,6 +206,45 @@ export class AuthService implements OnModuleInit {
       tokenRecord.userId,
       'logout_all',
     );
+  }
+
+  async listSessions(
+    userId: string,
+    currentRefreshToken?: string,
+  ): Promise<SessionView[]> {
+    const [sessions, currentSessionId] = await Promise.all([
+      this.refreshTokenRepository.listActiveSessions(userId),
+      this.resolveCurrentSessionId(currentRefreshToken),
+    ]);
+
+    return sessions.map((session) => ({
+      id: session.id,
+      userAgent: session.userAgent,
+      ip: session.ip,
+      createdAt: new Date(session.createdAt).toISOString(),
+      lastUsedAt: new Date(session.lastUsedAt).toISOString(),
+      current: session.id === currentSessionId,
+    }));
+  }
+
+  // Идемпотентно: чужой и несуществующий id неотличимы (оба 204), но чужую
+  // сессию отозвать нельзя — `user_id` в условии обновления. Возвращаем
+  // признак «отозвана текущая», чтобы контроллер почистил куки.
+  async revokeSession(
+    userId: string,
+    sessionId: string,
+    currentRefreshToken?: string,
+  ): Promise<boolean> {
+    await this.refreshTokenRepository.revokeActiveForUser(
+      userId,
+      sessionId,
+      'logout',
+    );
+
+    const currentSessionId =
+      await this.resolveCurrentSessionId(currentRefreshToken);
+
+    return currentSessionId === sessionId;
   }
 
   async sendEmailVerification({ id, email }: SendEmailVerificationParams) {
@@ -288,13 +338,8 @@ export class AuthService implements OnModuleInit {
     });
   }
 
-  // TODO(вынос): проверка «пользователь из токена ещё существует» дублирует
-  // EmailVerificationPolicy. Появится третий потребитель — вынести общий
-  // getUserOrThrow в AuthService/UserRepository.
   async getProfile(id: string): Promise<ProfileView> {
-    const userRecord = await this.userRepository.findById(id);
-
-    if (!userRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+    const userRecord = await this.getUserOrThrow(id);
 
     return {
       id: userRecord.id,
@@ -355,15 +400,67 @@ export class AuthService implements OnModuleInit {
       });
   }
 
+  private async resolveCurrentSessionId(refreshToken?: string) {
+    if (!refreshToken) return null;
+
+    const tokenRecord = await this.refreshTokenRepository.findByHash(
+      hashToken(refreshToken),
+    );
+
+    return tokenRecord?.sessionId ?? null;
+  }
+
+  private async rotateSession(
+    tokenRecord: RefreshTokenRecord,
+    user: { id: string; email: string },
+    tokenHash: string,
+    mode: 'replace' | 'successor',
+  ): Promise<TokenPair | null> {
+    return this.unitOfWork.run(async (tx) => {
+      if (mode === 'successor') {
+        await this.refreshTokenRepository.revokeActiveBySessionId(
+          tokenRecord.sessionId,
+          'rotated',
+          tx,
+        );
+      } else {
+        const revoked = await this.refreshTokenRepository.revokeByHash(
+          tokenHash,
+          'rotated',
+          tx,
+        );
+
+        if (!revoked) return null;
+      }
+
+      return this.issueTokens(
+        user,
+        tokenRecord.sessionId,
+        {
+          userAgent: tokenRecord.userAgent,
+          ip: tokenRecord.ip,
+        },
+        tx,
+      );
+    });
+  }
+
   private async issueTokens(
     user: { id: string; email: string },
     sessionId?: string,
-  ) {
+    metadata?: SessionMetadata,
+    db?: DbExecutor,
+  ): Promise<TokenPair> {
     const accessToken = this.jwtService.sign({
       sub: user.id,
       email: user.email,
     });
-    const refreshToken = await this.createSession(user.id, sessionId);
+    const refreshToken = await this.createSession(
+      user.id,
+      sessionId,
+      metadata,
+      db,
+    );
 
     return {
       accessToken,
@@ -371,19 +468,39 @@ export class AuthService implements OnModuleInit {
     };
   }
 
-  private async createSession(userId: string, currentSessionId?: string) {
+  private async createSession(
+    userId: string,
+    currentSessionId?: string,
+    metadata?: SessionMetadata,
+    db?: DbExecutor,
+  ) {
     const sessionId = currentSessionId ?? randomUUID();
     const refreshToken = generateToken();
     const tokenHash = hashToken(refreshToken);
-    const expiresAt = new Date(Date.now() + REFRESH_COOKIE_TTL);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + REFRESH_COOKIE_TTL);
 
-    await this.refreshTokenRepository.create({
-      userId,
-      sessionId,
-      tokenHash,
-      expiresAt,
-    });
+    await this.refreshTokenRepository.create(
+      {
+        userId,
+        sessionId,
+        tokenHash,
+        expiresAt,
+        userAgent: metadata?.userAgent ?? null,
+        ip: metadata?.ip ?? null,
+        lastUsedAt: now,
+      },
+      db,
+    );
 
     return refreshToken;
+  }
+
+  private async getUserOrThrow(userId: string) {
+    const userRecord = await this.userRepository.findById(userId);
+
+    if (!userRecord) throw new UnauthorizedException(UNAUTHORIZED_ERROR);
+
+    return userRecord;
   }
 }

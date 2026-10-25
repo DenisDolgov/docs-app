@@ -96,12 +96,20 @@ order by column_name`,
   });
 
   it('не заводит cross-schema ссылок на auth.users', async () => {
+    // FK внутри auth допустим (refresh_tokens → users), запрещены только
+    // ссылки из чужих схем: удаление пользователя не должно каскадить данные
+    // organization/document неявно.
     const result = await db.execute<{ count: string }>(
       sql`select count(*)::text as count
 from information_schema.referential_constraints rc
 join information_schema.constraint_column_usage ccu
   on ccu.constraint_name = rc.constraint_name
-where ccu.table_schema = 'auth'`,
+ and ccu.constraint_schema = rc.constraint_schema
+join information_schema.constraint_table_usage ctu
+  on ctu.constraint_name = rc.constraint_name
+ and ctu.constraint_schema = rc.constraint_schema
+where ccu.table_schema = 'auth'
+  and ctu.table_schema <> 'auth'`,
     );
 
     expect(result.rows[0]?.count).toBe('0');

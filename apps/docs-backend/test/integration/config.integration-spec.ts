@@ -35,4 +35,33 @@ describe('env config', () => {
       Test.createTestingModule({ imports: [AppModule] }).compile(),
     ).rejects.toThrow(/DATABASE_URL/);
   });
+
+  it('приводит COOKIE_SECURE к boolean и читает остальные cookie-настройки', async () => {
+    vi.stubEnv('COOKIE_SECURE', 'false');
+    vi.stubEnv('COOKIE_SAMESITE', 'lax');
+    vi.stubEnv('COOKIE_DOMAIN', 'docs.example.test');
+
+    const AppModule = await loadAppModule();
+    const ref = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    const config = ref.get(ConfigService);
+
+    // `z.coerce.boolean()` здесь ошибочен: Boolean('false') === true.
+    expect(config.get('COOKIE_SECURE')).toBe(false);
+    expect(config.get('COOKIE_SAMESITE')).toBe('lax');
+    expect(config.get('COOKIE_DOMAIN')).toBe('docs.example.test');
+
+    await ref.close();
+  });
+
+  it('не стартует с SameSite=None без Secure', async () => {
+    vi.stubEnv('COOKIE_SAMESITE', 'none');
+    vi.stubEnv('COOKIE_SECURE', 'false');
+
+    const AppModule = await loadAppModule();
+    await expect(
+      Test.createTestingModule({ imports: [AppModule] }).compile(),
+    ).rejects.toThrow(/COOKIE_SECURE|COOKIE_SAMESITE|SameSite/);
+  });
 });
