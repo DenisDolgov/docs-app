@@ -1,5 +1,6 @@
 import {
   createDocumentDto,
+  documentIdSchema,
   documentResponseDto,
   updateDocumentDto,
 } from '@docs-app/contracts/document';
@@ -23,12 +24,15 @@ import { z } from 'zod';
 import { AccessTokenPayload } from '../auth/auth.models';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionGuard } from '../permission/permission.guard';
+import { RequirePermission } from '../permission/require-permission.decorator';
 import { DocumentService } from './document.service';
 
 // Единый контур документа: список доступных, создание личного и операции над
-// одним документом (доступ = владелец или член организации документа).
+// одним документом. Право проверяет guard через `AccessPolicyService`; сервис
+// повторяет проверку для вызовов в обход HTTP.
 @Controller(documentRoute.base)
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
@@ -54,22 +58,26 @@ export class DocumentController {
   }
 
   @Get(documentRoute.byIdPattern)
+  @RequirePermission('viewer')
   @SerializeOptions({ schema: documentResponseDto })
   @ApiOkResponse({ standardSchema: documentResponseDto })
   async get(
     @CurrentUser() user: AccessTokenPayload,
-    @Param(documentRoute.param) documentId: string,
+    @Param(documentRoute.param, { schema: documentIdSchema })
+    documentId: string,
   ) {
     return this.documentService.get({ documentId, actorId: user.sub });
   }
 
   @Patch(documentRoute.byIdPattern)
+  @RequirePermission('editor')
   @HttpCode(HttpStatus.OK)
   @SerializeOptions({ schema: documentResponseDto })
   @ApiOkResponse({ standardSchema: documentResponseDto })
   async update(
     @CurrentUser() user: AccessTokenPayload,
-    @Param(documentRoute.param) documentId: string,
+    @Param(documentRoute.param, { schema: documentIdSchema })
+    documentId: string,
     @Body({ schema: updateDocumentDto })
     { title }: z.infer<typeof updateDocumentDto>,
   ) {
@@ -81,10 +89,12 @@ export class DocumentController {
   }
 
   @Delete(documentRoute.byIdPattern)
+  @RequirePermission('editor')
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(
     @CurrentUser() user: AccessTokenPayload,
-    @Param(documentRoute.param) documentId: string,
+    @Param(documentRoute.param, { schema: documentIdSchema })
+    documentId: string,
   ) {
     return this.documentService.remove({ documentId, actorId: user.sub });
   }

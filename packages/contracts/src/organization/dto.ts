@@ -11,6 +11,10 @@ export const addMemberDto = z.object({
   role: z.enum(assignableOrganizationRoles),
 });
 
+// Path-параметр: без валидации невалидный uuid уходит в Postgres текстом и
+// даёт 500 (22P02) вместо 400.
+export const organizationIdSchema = z.uuidv7();
+
 // Список организаций пользователя: роль едет вместе с организацией.
 export const organizationResponseDto = z.object({
   id: z.uuidv7(),

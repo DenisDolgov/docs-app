@@ -2,32 +2,13 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CollabAccessService } from '../../src/collab/collab-access.service';
-import { DocumentRepository } from '../../src/document/document.repository';
-import { OrganizationMemberRepository } from '../../src/organization/organization-member.repository';
+import { AccessPolicyService } from '../../src/permission/access-policy.service';
 
-const OWNER_ID = 'user-owner';
 const USER_ID = 'user-member';
-const OUTSIDER_ID = 'user-outsider';
-const ORGANIZATION_ID = 'org-1';
-const DOCUMENT_ID = 'doc-1';
+const DOCUMENT_ID = '0192f5b0-1c00-7000-8000-000000000001';
 
-const documentRepository = {
-  findById: vi.fn(),
-};
-
-const organizationMemberRepository = {
-  findByOrgAndUser: vi.fn(),
-};
-
-const document = {
-  id: DOCUMENT_ID,
-  organizationId: ORGANIZATION_ID,
-  createdBy: OWNER_ID,
-};
-const personalDocument = {
-  id: DOCUMENT_ID,
-  organizationId: null,
-  createdBy: OWNER_ID,
+const accessPolicy = {
+  getDocumentAccess: vi.fn(),
 };
 
 describe('CollabAccessService (unit)', () => {
@@ -39,73 +20,64 @@ describe('CollabAccessService (unit)', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         CollabAccessService,
-        { provide: DocumentRepository, useValue: documentRepository },
-        {
-          provide: OrganizationMemberRepository,
-          useValue: organizationMemberRepository,
-        },
+        { provide: AccessPolicyService, useValue: accessPolicy },
       ],
     }).compile();
 
     service = moduleRef.get(CollabAccessService);
   });
 
-  it('пускает владельца личного документа без проверки членства', async () => {
-    documentRepository.findById.mockResolvedValue(personalDocument);
+  const level = (value: string | null) =>
+    accessPolicy.getDocumentAccess.mockResolvedValue(value);
 
-    await expect(
-      service.resolveAccess({ documentId: DOCUMENT_ID, userId: OWNER_ID }),
-    ).resolves.toBe(true);
+  it('спрашивает политику про конкретный документ и пользователя', async () => {
+    level('editor');
 
-    expect(
-      organizationMemberRepository.findByOrgAndUser,
-    ).not.toHaveBeenCalled();
-  });
+    await service.canEdit({ documentId: DOCUMENT_ID, userId: USER_ID });
 
-  it('пускает члена организации документа', async () => {
-    documentRepository.findById.mockResolvedValue(document);
-    organizationMemberRepository.findByOrgAndUser.mockResolvedValue({
-      id: 'membership-1',
-      organizationId: ORGANIZATION_ID,
-      role: 'member',
+    expect(accessPolicy.getDocumentAccess).toHaveBeenCalledWith({
+      documentId: DOCUMENT_ID,
+      principal: { userId: USER_ID },
     });
+  });
+
+  it('пускает editor-а в комнату', async () => {
+    level('editor');
 
     await expect(
-      service.resolveAccess({ documentId: DOCUMENT_ID, userId: USER_ID }),
+      service.canEdit({ documentId: DOCUMENT_ID, userId: USER_ID }),
     ).resolves.toBe(true);
-
-    expect(organizationMemberRepository.findByOrgAndUser).toHaveBeenCalledWith(
-      ORGANIZATION_ID,
-      USER_ID,
-    );
   });
 
-  it('возвращает false, если документа нет', async () => {
-    documentRepository.findById.mockResolvedValue(null);
+  it('пускает владельца документа', async () => {
+    level('owner');
 
     await expect(
-      service.resolveAccess({ documentId: DOCUMENT_ID, userId: USER_ID }),
-    ).resolves.toBe(false);
-
-    expect(
-      organizationMemberRepository.findByOrgAndUser,
-    ).not.toHaveBeenCalled();
+      service.canEdit({ documentId: DOCUMENT_ID, userId: USER_ID }),
+    ).resolves.toBe(true);
   });
 
-  it('возвращает false, если пользователь не участник организации', async () => {
-    documentRepository.findById.mockResolvedValue(document);
-    organizationMemberRepository.findByOrgAndUser.mockResolvedValue(null);
+  it('не пускает viewer-а: комната — это запись, а не чтение', async () => {
+    level('viewer');
 
     await expect(
-      service.resolveAccess({ documentId: DOCUMENT_ID, userId: OUTSIDER_ID }),
+      service.canEdit({ documentId: DOCUMENT_ID, userId: USER_ID }),
     ).resolves.toBe(false);
   });
 
-  it('возвращает false для чужого личного документа', async () => {
-    documentRepository.findById.mockResolvedValue(personalDocument);
+  it('не пускает commenter-а', async () => {
+    level('commenter');
 
     await expect(
-      service.resolveAccess({ documentId: DOCUMENT_ID, userId: OUTSIDER_ID }),
+      service.canEdit({ documentId: DOCUMENT_ID, userId: USER_ID }),
+    ).resolves.toBe(false);
+  });
+
+  it('не пускает чужака и несуществующий документ одинаково', async () => {
+    level(null);
+
+    await expect(
+      service.canEdit({ documentId: DOCUMENT_ID, userId: USER_ID }),
     ).resolves.toBe(false);
   });
 });

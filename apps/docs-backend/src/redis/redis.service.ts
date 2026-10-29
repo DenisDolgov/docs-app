@@ -31,6 +31,11 @@ export class RedisService {
     return this.redis.del(key);
   }
 
+  // Инкремент — операция над версией в кэше прав: возвращает новое значение.
+  public incr(key: string) {
+    return this.redis.incr(key);
+  }
+
   public publish(channel: string, payload: unknown) {
     return this.redis.publish(channel, JSON.stringify(payload));
   }

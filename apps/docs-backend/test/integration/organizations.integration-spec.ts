@@ -7,7 +7,6 @@ import { AuthService } from '../../src/auth/auth.service';
 import { UserRepository } from '../../src/auth/user.repository';
 import { DATABASE, type Database } from '../../src/database/database.constants';
 import { OrganizationService } from '../../src/organization/organization.service';
-import { OrganizationMemberRepository } from '../../src/organization/organization-member.repository';
 import { createTestingModule } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
@@ -17,7 +16,6 @@ describe('organizations (integration)', () => {
   let auth: AuthService;
   let users: UserRepository;
   let organizationService: OrganizationService;
-  let memberService: OrganizationMemberRepository;
   let db: Database;
   let close: () => Promise<void>;
 
@@ -38,7 +36,6 @@ describe('organizations (integration)', () => {
     auth = moduleRef.get(AuthService);
     users = moduleRef.get(UserRepository);
     organizationService = moduleRef.get(OrganizationService);
-    memberService = moduleRef.get(OrganizationMemberRepository);
     db = moduleRef.get(DATABASE);
     close = () => moduleRef.close();
   });
@@ -55,14 +52,14 @@ describe('organizations (integration)', () => {
       name: 'Acme',
     });
 
-    const membership = await memberService.findByOrgAndUser(
+    const role = await organizationService.getMemberRole(
       organization.id,
       owner.id,
     );
 
     expect(organization).toMatchObject({ name: 'Acme' });
     expect(organization.id).toEqual(expect.any(String));
-    expect(membership?.role).toBe('owner');
+    expect(role).toBe('owner');
   });
 
   it('создаёт таблицу organization.organizations с нужными колонками', async () => {
@@ -123,11 +120,11 @@ where ccu.table_schema = 'auth'
     });
 
     await expect(
-      memberService.create({
-        organizationId: organization.id,
-        userId: owner.id,
-        role: 'member',
-      }),
+      db.execute(
+        sql`insert into organization.organization_members
+  (organization_id, user_id, role)
+values (${organization.id}, ${owner.id}, 'member')`,
+      ),
     ).rejects.toThrow();
 
     const result = await db.execute<{ count: string }>(

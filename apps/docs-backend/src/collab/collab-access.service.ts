@@ -1,36 +1,22 @@
 import { Injectable } from '@nestjs/common';
 
-import { DocumentRepository } from '../document/document.repository';
-import { OrganizationMemberRepository } from '../organization/organization-member.repository';
-import { ResolveAccessParams } from './collab.models';
+import { AccessPolicyService } from '../permission/access-policy.service';
+import { hasAccess } from '../permission/permission.constants';
+import type { ResolveAccessParams } from './collab.models';
 
+// Правом на комнату владеет политика, здесь только порог: совместное
+// редактирование требует `editor`. Viewer читает документ по HTTP, но не
+// подключается к CRDT-комнате.
 @Injectable()
 export class CollabAccessService {
-  constructor(
-    private readonly documentRepository: DocumentRepository,
-    private readonly organizationMemberRepository: OrganizationMemberRepository,
-  ) {}
+  constructor(private readonly accessPolicy: AccessPolicyService) {}
 
-  // Доступ к комнате = владелец или член организации документа.
-  // Нет документа и нет доступа отвечают одинаково — чтобы не раскрывать
-  // существование чужого документа.
-  async resolveAccess({
-    documentId,
-    userId,
-  }: ResolveAccessParams): Promise<boolean> {
-    const document = await this.documentRepository.findById(documentId);
+  async canEdit({ documentId, userId }: ResolveAccessParams): Promise<boolean> {
+    const level = await this.accessPolicy.getDocumentAccess({
+      documentId,
+      principal: { userId },
+    });
 
-    if (!document) return false;
-
-    if (document.createdBy === userId) return true;
-
-    if (!document.organizationId) return false;
-
-    const member = await this.organizationMemberRepository.findByOrgAndUser(
-      document.organizationId,
-      userId,
-    );
-
-    return member !== null;
+    return hasAccess(level, 'editor');
   }
 }

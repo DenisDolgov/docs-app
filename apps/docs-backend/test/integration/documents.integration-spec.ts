@@ -189,6 +189,26 @@ where tc.table_schema = 'documents' and tc.table_name = 'documents'
     expect(list.map((item) => item.id)).not.toContain(personal.id);
   });
 
+  it('включает в список документ, выданный прямым share-ом', async () => {
+    const owner = await register();
+    const viewer = await register();
+
+    const personal = await documentService.createPersonal({
+      actorId: owner.id,
+      title: 'Личное',
+    });
+
+    await db.execute(
+      sql`insert into permission.document_shares
+  (document_id, user_id, role, created_by)
+values (${personal.id}, ${viewer.id}, 'viewer', ${owner.id})`,
+    );
+
+    const list = await documentService.listAccessible({ actorId: viewer.id });
+
+    expect(list.map((item) => item.id)).toContain(personal.id);
+  });
+
   it('не отдаёт документ, если он в другой организации', async () => {
     const owner = await register();
     const first = await createOrganization(owner.id);

@@ -4,6 +4,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { UserRepository } from '../../src/auth/user.repository';
+import { DocumentShareService } from '../../src/permission/document-share.service';
 import { createTestApp, readAccessToken } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
@@ -29,7 +30,11 @@ describe('documents (e2e)', () => {
       .post('/auth/login')
       .send({ email, password: PASSWORD });
 
-    return { email, accessToken: readAccessToken(res) };
+    return {
+      email,
+      id: registered.body.id as string,
+      accessToken: readAccessToken(res),
+    };
   };
 
   const createOrganization = (accessToken: string, name = 'Acme') =>
@@ -279,5 +284,124 @@ describe('documents (e2e)', () => {
       .set('Authorization', `Bearer ${outsider.accessToken}`);
 
     expect(res.status).toBe(404);
+  });
+
+  it('отдаёт shared-документ в списке доступных', async () => {
+    const owner = await registerAndLogin();
+    const viewer = await registerAndLogin();
+    const organization = await createOrganization(owner.accessToken);
+    const created = await createOrganizationDocument(
+      owner.accessToken,
+      organization.body.id,
+    );
+
+    await app.get(DocumentShareService).grant({
+      documentId: created.body.id,
+      userId: viewer.id,
+      role: 'viewer',
+      actorId: owner.id,
+    });
+
+    const res = await request(app.getHttpServer())
+      .get('/documents')
+      .set('Authorization', `Bearer ${viewer.accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.map((item: { id: string }) => item.id)).toContain(
+      created.body.id,
+    );
+  });
+
+  it('viewer через share читает документ, но не пишет', async () => {
+    const owner = await registerAndLogin();
+    const viewer = await registerAndLogin();
+    const organization = await createOrganization(owner.accessToken);
+    const created = await createOrganizationDocument(
+      owner.accessToken,
+      organization.body.id,
+    );
+
+    await app.get(DocumentShareService).grant({
+      documentId: created.body.id,
+      userId: viewer.id,
+      role: 'viewer',
+      actorId: owner.id,
+    });
+
+    const read = await request(app.getHttpServer())
+      .get(`/documents/${created.body.id}`)
+      .set('Authorization', `Bearer ${viewer.accessToken}`);
+    expect(read.status).toBe(200);
+
+    const write = await request(app.getHttpServer())
+      .patch(`/documents/${created.body.id}`)
+      .set('Authorization', `Bearer ${viewer.accessToken}`)
+      .send({ title: 'Правка viewer-а' });
+    expect(write.status).toBe(404);
+
+    const remove = await request(app.getHttpServer())
+      .delete(`/documents/${created.body.id}`)
+      .set('Authorization', `Bearer ${viewer.accessToken}`);
+    expect(remove.status).toBe(404);
+  });
+
+  it('отзыв share закрывает доступ на следующем запросе', async () => {
+    const owner = await registerAndLogin();
+    const viewer = await registerAndLogin();
+    const organization = await createOrganization(owner.accessToken);
+    const created = await createOrganizationDocument(
+      owner.accessToken,
+      organization.body.id,
+    );
+    const shares = app.get(DocumentShareService);
+
+    await shares.grant({
+      documentId: created.body.id,
+      userId: viewer.id,
+      role: 'viewer',
+      actorId: owner.id,
+    });
+
+    // Первый запрос прогревает кэш права — отзыв обязан его обойти.
+    const whileGranted = await request(app.getHttpServer())
+      .get(`/documents/${created.body.id}`)
+      .set('Authorization', `Bearer ${viewer.accessToken}`);
+    expect(whileGranted.status).toBe(200);
+
+    await shares.revoke({
+      documentId: created.body.id,
+      userId: viewer.id,
+      actorId: owner.id,
+    });
+
+    const afterRevoke = await request(app.getHttpServer())
+      .get(`/documents/${created.body.id}`)
+      .set('Authorization', `Bearer ${viewer.accessToken}`);
+    expect(afterRevoke.status).toBe(404);
+  });
+
+  it('отвечает 400 на documentId, который не UUID', async () => {
+    const owner = await registerAndLogin();
+
+    const read = await request(app.getHttpServer())
+      .get('/documents/not-a-uuid')
+      .set('Authorization', `Bearer ${owner.accessToken}`);
+    expect(read.status).toBe(400);
+
+    const write = await request(app.getHttpServer())
+      .patch('/documents/not-a-uuid')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .send({ title: 'Новое' });
+    expect(write.status).toBe(400);
+  });
+
+  it('отвечает 400 на organizationId, который не UUID', async () => {
+    const owner = await registerAndLogin();
+
+    const res = await request(app.getHttpServer())
+      .get('/organizations/not-a-uuid/documents')
+      .set('Authorization', `Bearer ${owner.accessToken}`);
+
+    expect(res.status).toBe(400);
   });
 });

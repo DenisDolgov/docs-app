@@ -2,6 +2,7 @@ import {
   addMemberDto,
   createdOrganizationResponseDto,
   createOrganizationDto,
+  organizationIdSchema,
   organizationMemberResponseDto,
   organizationResponseDto,
 } from '@docs-app/contracts/organization';
@@ -54,7 +55,8 @@ export class OrganizationController {
   @ApiCreatedResponse({ standardSchema: organizationMemberResponseDto })
   async addMember(
     @CurrentUser() user: AccessTokenPayload,
-    @Param(organizationRoute.param) organizationId: string,
+    @Param(organizationRoute.param, { schema: organizationIdSchema })
+    organizationId: string,
     @Body({ schema: addMemberDto }) {
       email,
       role,
@@ -76,7 +78,8 @@ export class OrganizationController {
   })
   getMembers(
     @CurrentUser() user: AccessTokenPayload,
-    @Param(organizationRoute.param) organizationId: string,
+    @Param(organizationRoute.param, { schema: organizationIdSchema })
+    organizationId: string,
   ) {
     return this.organizationService.listMembers({
       organizationId,

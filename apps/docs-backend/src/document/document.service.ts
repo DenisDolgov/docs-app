@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { ORGANIZATION_NOT_FOUND_ERROR } from '../organization/errors';
-import { OrganizationMemberRepository } from '../organization/organization-member.repository';
+import { OrganizationService } from '../organization/organization.service';
+import { AccessPolicyService } from '../permission/access-policy.service';
 import {
   CreateDocumentParams,
   CreatePersonalDocumentParams,
@@ -18,7 +18,8 @@ import { DOCUMENT_NOT_FOUND_ERROR } from './errors';
 export class DocumentService {
   constructor(
     private readonly documentRepository: DocumentRepository,
-    private readonly organizationMemberRepository: OrganizationMemberRepository,
+    private readonly organizationService: OrganizationService,
+    private readonly accessPolicy: AccessPolicyService,
   ) {}
 
   public async createInOrganization({
@@ -26,7 +27,7 @@ export class DocumentService {
     actorId,
     title,
   }: CreateDocumentParams) {
-    await this.assertActorMember(organizationId, actorId);
+    await this.organizationService.requireMember(organizationId, actorId);
 
     return await this.documentRepository.create({
       organizationId,
@@ -49,7 +50,7 @@ export class DocumentService {
     organizationId,
     actorId,
   }: GetOrganizationDocumentsParams) {
-    await this.assertActorMember(organizationId, actorId);
+    await this.organizationService.requireMember(organizationId, actorId);
 
     return this.documentRepository.listByOrganization(organizationId);
   }
@@ -59,52 +60,46 @@ export class DocumentService {
   }
 
   public async get({ actorId, documentId }: GetDocumentParams) {
-    return this.assertCanAccess(documentId, actorId);
+    await this.accessPolicy.assertDocumentAccess({
+      documentId,
+      principal: { userId: actorId },
+      required: 'viewer',
+    });
+
+    const document = await this.documentRepository.findById(documentId);
+
+    if (!document) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
+
+    return document;
   }
 
   public async update({ actorId, documentId, title }: UpdateDocumentParams) {
-    await this.assertCanAccess(documentId, actorId);
+    await this.accessPolicy.assertDocumentAccess({
+      documentId,
+      principal: { userId: actorId },
+      required: 'editor',
+    });
 
-    return this.documentRepository.update(documentId, title);
+    const document = await this.documentRepository.update(documentId, title);
+
+    if (!document) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
+
+    return document;
   }
 
   public async remove({ actorId, documentId }: RemoveDocumentParams) {
-    await this.assertCanAccess(documentId, actorId);
+    await this.accessPolicy.assertDocumentAccess({
+      documentId,
+      principal: { userId: actorId },
+      required: 'editor',
+    });
 
-    return this.documentRepository.remove(documentId);
-  }
+    const removed = await this.documentRepository.remove(documentId);
 
-  private async assertActorMember(organizationId: string, actorId: string) {
-    const actorMember =
-      await this.organizationMemberRepository.findByOrgAndUser(
-        organizationId,
-        actorId,
-      );
+    if (!removed) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
 
-    if (!actorMember) throw new NotFoundException(ORGANIZATION_NOT_FOUND_ERROR);
-
-    return actorMember;
-  }
-
-  // Доступ к документу = владелец или член организации документа.
-  // Отсутствие документа и отсутствие доступа отвечают одинаково (404),
-  // чтобы не раскрывать существование чужого документа.
-  private async assertCanAccess(documentId: string, actorId: string) {
-    const documentRecord = await this.documentRepository.findById(documentId);
-
-    if (!documentRecord) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
-
-    if (documentRecord.createdBy === actorId) return documentRecord;
-
-    if (documentRecord.organizationId) {
-      const member = await this.organizationMemberRepository.findByOrgAndUser(
-        documentRecord.organizationId,
-        actorId,
-      );
-
-      if (member) return documentRecord;
-    }
-
-    throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
+    // Документа больше нет: снимаем с кэша и его права, чтобы записи не жили
+    // до TTL.
+    await this.accessPolicy.invalidateDocument(documentId);
   }
 }

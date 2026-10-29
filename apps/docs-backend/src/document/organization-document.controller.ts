@@ -3,6 +3,7 @@ import {
   documentResponseDto,
 } from '@docs-app/contracts/document';
 import { organizationDocumentRoute } from '@docs-app/contracts/document/routes';
+import { organizationIdSchema } from '@docs-app/contracts/organization';
 import {
   Body,
   Controller,
@@ -21,6 +22,8 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentService } from './document.service';
 
 // Арендный список организации: только чтение и создание внутри организации.
+// Право на конкретный документ здесь не проверяется — членство в организации
+// проверяет сервис.
 @Controller(organizationDocumentRoute.base)
 @UseGuards(JwtAuthGuard)
 export class OrganizationDocumentController {
@@ -31,7 +34,10 @@ export class OrganizationDocumentController {
   @ApiCreatedResponse({ standardSchema: documentResponseDto })
   async create(
     @CurrentUser() user: AccessTokenPayload,
-    @Param(organizationDocumentRoute.organizationParam) organizationId: string,
+    @Param(organizationDocumentRoute.organizationParam, {
+      schema: organizationIdSchema,
+    })
+    organizationId: string,
     @Body({ schema: createDocumentDto })
     { title }: z.infer<typeof createDocumentDto>,
   ) {
@@ -47,7 +53,10 @@ export class OrganizationDocumentController {
   @ApiOkResponse({ standardSchema: documentResponseDto, isArray: true })
   async getAll(
     @CurrentUser() user: AccessTokenPayload,
-    @Param(organizationDocumentRoute.organizationParam) organizationId: string,
+    @Param(organizationDocumentRoute.organizationParam, {
+      schema: organizationIdSchema,
+    })
+    organizationId: string,
   ) {
     return this.documentService.listInOrganization({
       organizationId,

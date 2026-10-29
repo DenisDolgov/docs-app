@@ -1,3 +1,4 @@
+import type { OrganizationRole } from '@docs-app/contracts/organization';
 import {
   ConflictException,
   ForbiddenException,
@@ -63,7 +64,7 @@ export class OrganizationService {
     email,
     role,
   }: AddMemberParams) {
-    const actorMember = await this.assertActorMember(organizationId, actorId);
+    const actorMember = await this.requireMember(organizationId, actorId);
 
     if (!canManageMembers(actorMember.role)) throw new ForbiddenException();
 
@@ -94,7 +95,7 @@ export class OrganizationService {
   }
 
   public async listMembers({ organizationId, actorId }: ListMembersParams) {
-    await this.assertActorMember(organizationId, actorId);
+    await this.requireMember(organizationId, actorId);
 
     const members =
       await this.organizationMemberRepository.listByOrganization(
@@ -124,11 +125,27 @@ export class OrganizationService {
     }, [] as OrganizationMemberListItem[]);
   }
 
-  private async assertActorMember(organizationId: string, actorId: string) {
+  // Роль пользователя в организации или `null`, если он не участник. Поведение
+  // наружу, а не репозиторий: модуль прав не должен знать, как хранят членство.
+  public async getMemberRole(
+    organizationId: string,
+    userId: string,
+  ): Promise<OrganizationRole | null> {
+    const member = await this.organizationMemberRepository.findByOrgAndUser(
+      organizationId,
+      userId,
+    );
+
+    return member?.role ?? null;
+  }
+
+  // Членство как предусловие действия: чужак и несуществующая организация
+  // отвечают одинаково (404).
+  public async requireMember(organizationId: string, userId: string) {
     const actorMember =
       await this.organizationMemberRepository.findByOrgAndUser(
         organizationId,
-        actorId,
+        userId,
       );
 
     if (!actorMember) throw new NotFoundException(ORGANIZATION_NOT_FOUND_ERROR);

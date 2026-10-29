@@ -99,13 +99,13 @@ export class CollabGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       try {
-        const access = await this.collabAccessService.resolveAccess({
+        const canEdit = await this.collabAccessService.canEdit({
           documentId,
           userId: user.sub,
         });
 
         // нет доступа и нет документа отвечают одинаково — чтобы не раскрывать существование чужого документа
-        if (!access) {
+        if (!canEdit) {
           return client.close(COLLAB_CLOSE_ACCESS_DENIED, 'Document not found');
         }
       } catch {

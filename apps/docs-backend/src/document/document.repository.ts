@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, eq, getTableColumns, or, sql } from 'drizzle-orm';
+import { desc, eq, getColumns, or, sql } from 'drizzle-orm';
 
 import { DATABASE, Database } from '../database/database.constants';
 import * as schema from '../database/schema';
@@ -42,12 +42,11 @@ export class DocumentRepository {
     return documents.map(toDocumentView);
   }
 
-  // Все доступные пользователю документы: личные (владелец) и организационные
-  // (членство в организации документа). Собираем join-ом, чтобы обойтись одним
-  // запросом; `selectDistinct` страхует от дублей по membership.
+  // Все доступные пользователю документы: личные (владелец), организационные
+  // (членство в организации документа) и выданные напрямую share'ом
   public async listAccessible(userId: string): Promise<DocumentView[]> {
     const documents = await this.db
-      .selectDistinct(getTableColumns(schema.documents))
+      .selectDistinct(getColumns(schema.documents))
       .from(schema.documents)
       .leftJoin(
         schema.organizationMembers,
@@ -56,10 +55,15 @@ export class DocumentRepository {
           schema.organizationMembers.organizationId,
         ),
       )
+      .leftJoin(
+        schema.documentShares,
+        eq(schema.documents.id, schema.documentShares.documentId),
+      )
       .where(
         or(
           eq(schema.documents.createdBy, userId),
           eq(schema.organizationMembers.userId, userId),
+          eq(schema.documentShares.userId, userId),
         ),
       )
       .orderBy(desc(schema.documents.updatedAt));
@@ -89,7 +93,7 @@ export class DocumentRepository {
   public async update(
     documentId: string,
     title: string,
-  ): Promise<DocumentView> {
+  ): Promise<DocumentView | null> {
     const [document] = await this.db
       .update(schema.documents)
       .set({
@@ -99,12 +103,15 @@ export class DocumentRepository {
       .where(eq(schema.documents.id, documentId))
       .returning();
 
-    return toDocumentView(document);
+    return document ? toDocumentView(document) : null;
   }
 
-  public async remove(documentId: string) {
-    return this.db
+  public async remove(documentId: string): Promise<boolean> {
+    const removed = await this.db
       .delete(schema.documents)
-      .where(eq(schema.documents.id, documentId));
+      .where(eq(schema.documents.id, documentId))
+      .returning({ id: schema.documents.id });
+
+    return removed.length > 0;
   }
 }
