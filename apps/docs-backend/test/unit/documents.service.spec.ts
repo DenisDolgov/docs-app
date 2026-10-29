@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +8,7 @@ import { OrganizationService } from '../../src/organization/organization.service
 import { AccessPolicyService } from '../../src/permission/access-policy.service';
 
 const MEMBER_ID = 'user-member';
+const VIEWER_ID = 'user-viewer';
 const OUTSIDER_ID = 'user-outsider';
 const ORGANIZATION_ID = '0192f5b0-1c00-7000-8000-000000000001';
 const DOCUMENT_ID = '0192f5b0-1c00-7000-8000-000000000002';
@@ -232,18 +233,18 @@ describe('DocumentService', () => {
       );
     });
 
-    it('отвечает «не найдено» viewer-у и не пишет в БД', async () => {
+    it('отвечает 403 viewer-у и не пишет в БД', async () => {
       accessPolicy.assertDocumentAccess.mockRejectedValue(
-        new NotFoundException(),
+        new ForbiddenException(),
       );
 
       await expect(
         service.update({
-          actorId: OUTSIDER_ID,
+          actorId: VIEWER_ID,
           documentId: DOCUMENT_ID,
           title: 'Новое',
         }),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(documentRepository.update).not.toHaveBeenCalled();
     });
 

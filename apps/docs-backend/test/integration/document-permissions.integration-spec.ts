@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -114,11 +114,11 @@ describe('document permissions (integration)', () => {
         actorId: viewer.id,
         title: 'Нельзя',
       }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(ForbiddenException);
 
     await expect(
       documents.remove({ documentId: document.id, actorId: viewer.id }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('share commenter читает и комментирует, но не правит текст', async () => {
@@ -142,7 +142,7 @@ describe('document permissions (integration)', () => {
         actorId: commenter.id,
         title: 'Нельзя',
       }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('share editor правит документ', async () => {
@@ -256,7 +256,7 @@ describe('document permissions (integration)', () => {
         role: 'editor',
         actorId: member.id,
       }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('список доступных документов учитывает share', async () => {

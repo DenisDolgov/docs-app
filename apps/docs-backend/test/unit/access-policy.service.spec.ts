@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -90,12 +90,12 @@ describe('AccessPolicyService (unit)', () => {
       ).resolves.toBe('editor');
     });
 
-    it('отвечает 404, если уровня не хватает', async () => {
+    it('отвечает 403, если документ виден, но уровня не хватает', async () => {
       cache.get.mockResolvedValue('viewer');
 
       await expect(
         service.assertDocumentAccess({ ...params, required: 'editor' }),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('отвечает 404, если доступа нет вовсе', async () => {

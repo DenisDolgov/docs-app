@@ -312,7 +312,7 @@ describe('documents (e2e)', () => {
     );
   });
 
-  it('viewer через share читает документ, но не пишет', async () => {
+  it('viewer через share читает документ, а запись получает 403', async () => {
     const owner = await registerAndLogin();
     const viewer = await registerAndLogin();
     const organization = await createOrganization(owner.accessToken);
@@ -333,16 +333,17 @@ describe('documents (e2e)', () => {
       .set('Authorization', `Bearer ${viewer.accessToken}`);
     expect(read.status).toBe(200);
 
+    // Документ viewer уже видит, поэтому нехватка прав — 403, а не 404.
     const write = await request(app.getHttpServer())
       .patch(`/documents/${created.body.id}`)
       .set('Authorization', `Bearer ${viewer.accessToken}`)
       .send({ title: 'Правка viewer-а' });
-    expect(write.status).toBe(404);
+    expect(write.status).toBe(403);
 
     const remove = await request(app.getHttpServer())
       .delete(`/documents/${created.body.id}`)
       .set('Authorization', `Bearer ${viewer.accessToken}`);
-    expect(remove.status).toBe(404);
+    expect(remove.status).toBe(403);
   });
 
   it('отзыв share закрывает доступ на следующем запросе', async () => {

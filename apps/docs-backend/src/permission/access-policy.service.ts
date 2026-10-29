@@ -1,6 +1,14 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 
-import { DOCUMENT_NOT_FOUND_ERROR } from '../document/errors';
+import {
+  DOCUMENT_FORBIDDEN_ERROR,
+  DOCUMENT_NOT_FOUND_ERROR,
+} from '../document/errors';
 import { AccessResolver } from './access-resolver';
 import { DocumentAccessCache } from './document-access-cache';
 import { hasAccess } from './permission.constants';
@@ -36,7 +44,9 @@ export class AccessPolicyService {
     return level;
   }
 
-  // Отказ отвечает 404, а не 403: иначе чужой документ можно найти перебором.
+  // Документ, которого для тебя нет, отвечает 404: иначе его можно найти
+  // перебором. Недостаточный уровень — 403: документ уже виден, скрывать нечего,
+  // и клиент может показать «попросить доступ».
   public async assertDocumentAccess({
     documentId,
     principal,
@@ -44,8 +54,12 @@ export class AccessPolicyService {
   }: AssertDocumentAccessParams): Promise<EffectiveAccessLevel> {
     const level = await this.getDocumentAccess({ documentId, principal });
 
-    if (level === null || !hasAccess(level, required)) {
+    if (level === null) {
       throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
+    }
+
+    if (!hasAccess(level, required)) {
+      throw new ForbiddenException(DOCUMENT_FORBIDDEN_ERROR);
     }
 
     return level;
