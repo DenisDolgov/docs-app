@@ -1,15 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
-import { DATABASE, Database } from '../database/database.constants';
+import {
+  DATABASE,
+  Database,
+  type DbExecutor,
+} from '../database/database.constants';
 import * as schema from '../database/schema';
 
 @Injectable()
 export class OrganizationRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  public async create(data: typeof schema.organizations.$inferInsert) {
-    const [organization] = await this.db
+  public async create(
+    data: typeof schema.organizations.$inferInsert,
+    db: DbExecutor = this.db,
+  ) {
+    const [organization] = await db
       .insert(schema.organizations)
       .values(data)
       .returning({
@@ -18,6 +25,12 @@ export class OrganizationRepository {
       });
 
     return organization;
+  }
+
+  public async findById(organizationId: string) {
+    return this.db.query.organizations.findFirst({
+      where: { id: organizationId },
+    });
   }
 
   public async listForUser(userId: string) {

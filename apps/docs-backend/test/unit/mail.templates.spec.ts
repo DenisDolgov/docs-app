@@ -122,6 +122,7 @@ describe('MailService: шаблоны писем (unit)', () => {
         token: TOKEN,
         organizationName: ORGANIZATION,
         inviterEmail: INVITER,
+        ttlDays: 7,
       });
 
       const mail = lastMail();
@@ -135,6 +136,7 @@ describe('MailService: шаблоны писем (unit)', () => {
         token: TOKEN,
         organizationName: ORGANIZATION,
         inviterEmail: INVITER,
+        ttlDays: 7,
       });
 
       expect(lastMail().text).toContain(ORGANIZATION);
@@ -146,6 +148,7 @@ describe('MailService: шаблоны писем (unit)', () => {
         token: TOKEN,
         organizationName: 'Acme',
         inviterEmail: INVITER,
+        ttlDays: 7,
       });
 
       const mail = lastMail();

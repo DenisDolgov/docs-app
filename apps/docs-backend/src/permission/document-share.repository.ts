@@ -1,16 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import { DATABASE, type Database } from '../database/database.constants';
 import * as schema from '../database/schema';
 import type {
+  DocumentShareListItem,
   DocumentShareView,
   GrantDocumentShareParams,
 } from './permission.models';
 
 type DocumentShareRow = typeof schema.documentShares.$inferSelect;
 
-const toDocumentShareView = (row: DocumentShareRow): DocumentShareView => ({
+export const toDocumentShareView = (
+  row: DocumentShareRow,
+): DocumentShareView => ({
   id: row.id,
   documentId: row.documentId,
   userId: row.userId,
@@ -57,13 +60,29 @@ export class DocumentShareRepository {
 
   public async listByDocument(
     documentId: string,
-  ): Promise<DocumentShareView[]> {
-    const rows = await this.db.query.documentShares.findMany({
-      where: { documentId },
-      orderBy: { createdAt: 'desc' },
-    });
+  ): Promise<DocumentShareListItem[]> {
+    const rows = await this.db
+      .select({
+        id: schema.documentShares.id,
+        documentId: schema.documentShares.documentId,
+        userId: schema.documentShares.userId,
+        role: schema.documentShares.role,
+        createdBy: schema.documentShares.createdBy,
+        createdAt: schema.documentShares.createdAt,
+        email: schema.users.email,
+      })
+      .from(schema.documentShares)
+      .innerJoin(
+        schema.users,
+        eq(schema.documentShares.userId, schema.users.id),
+      )
+      .where(eq(schema.documentShares.documentId, documentId))
+      .orderBy(desc(schema.documentShares.createdAt));
 
-    return rows.map(toDocumentShareView);
+    return rows.map((row) => ({
+      ...toDocumentShareView(row),
+      email: row.email,
+    }));
   }
 
   public async deleteByDocumentAndUser(

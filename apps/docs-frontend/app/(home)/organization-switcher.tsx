@@ -5,12 +5,14 @@ import {
   CheckIcon,
   ChevronsUpDownIcon,
   CircleUserIcon,
+  MailPlusIcon,
   PlusIcon,
   UsersIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 
 import { CreateOrganizationDialog } from '@/components/create-organization-dialog';
+import { OrganizationInvitesDialog } from '@/components/organization-invites-dialog';
 import { OrganizationMembersDialog } from '@/components/organization-members-dialog';
 import { useOrganization } from '@/components/organization-provider';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { canManageMembers } from '@/lib/organizations';
 
 export const OrganizationSwitcher = () => {
   const {
@@ -32,6 +35,13 @@ export const OrganizationSwitcher = () => {
   } = useOrganization();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isMembersOpen, setIsMembersOpen] = useState(false);
+  const [isInvitesOpen, setIsInvitesOpen] = useState(false);
+
+  // Приглашения видит только тот, кому бэкенд разрешит их список: у `member`
+  // диалог упал бы в 403 сразу после открытия.
+  const canManage = currentOrganization
+    ? canManageMembers(currentOrganization.role)
+    : false;
 
   return (
     <>
@@ -82,6 +92,12 @@ export const OrganizationSwitcher = () => {
               Участники
             </DropdownMenuItem>
           )}
+          {currentOrganization && canManage && (
+            <DropdownMenuItem onClick={() => setIsInvitesOpen(true)}>
+              <MailPlusIcon className="size-4" />
+              Приглашения
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -94,6 +110,13 @@ export const OrganizationSwitcher = () => {
           organization={currentOrganization}
           open={isMembersOpen}
           onOpenChange={setIsMembersOpen}
+        />
+      )}
+      {currentOrganization && (
+        <OrganizationInvitesDialog
+          organization={currentOrganization}
+          open={isInvitesOpen}
+          onOpenChange={setIsInvitesOpen}
         />
       )}
     </>

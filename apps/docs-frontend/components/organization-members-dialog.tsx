@@ -1,9 +1,6 @@
 'use client';
 
-import type {
-  OrganizationMemberDto,
-  OrganizationRole,
-} from '@docs-app/contracts/organization';
+import type { OrganizationMemberDto } from '@docs-app/contracts/organization';
 import { type SubmitEventHandler, useEffect, useState } from 'react';
 
 import { useAuth } from '@/components/auth-provider';
@@ -33,23 +30,11 @@ import { ApiError, type OrganizationDto } from '@/lib/api';
 import {
   type AssignableOrganizationRole,
   addOrganizationMember,
+  assignableRoleOptions,
   canManageMembers,
   listOrganizationMembers,
+  organizationRoleLabels,
 } from '@/lib/organizations';
-
-const roleLabels: Record<OrganizationRole, string> = {
-  owner: 'Владелец',
-  admin: 'Администратор',
-  member: 'Участник',
-};
-
-const assignableRoles = [
-  { value: 'admin', label: 'Администратор' },
-  { value: 'member', label: 'Участник' },
-] as const satisfies readonly {
-  value: AssignableOrganizationRole;
-  label: string;
-}[];
 
 const addMemberErrorMessage = (caught: unknown): string => {
   if (!(caught instanceof ApiError)) {
@@ -186,7 +171,7 @@ export const OrganizationMembersDialog = ({
                 <Badge
                   variant={member.role === 'owner' ? 'default' : 'secondary'}
                 >
-                  {roleLabels[member.role]}
+                  {organizationRoleLabels[member.role]}
                 </Badge>
               </li>
             ))}
@@ -218,7 +203,7 @@ export const OrganizationMembersDialog = ({
                     setRole(event.target.value as AssignableOrganizationRole)
                   }
                 >
-                  {assignableRoles.map((option) => (
+                  {assignableRoleOptions.map((option) => (
                     <NativeSelectOption key={option.value} value={option.value}>
                       {option.label}
                     </NativeSelectOption>

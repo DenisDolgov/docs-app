@@ -26,6 +26,17 @@ where document_id = ${id}`,
     return result.rows[0]?.count;
   };
 
+  // Список share отдаёт email, поэтому участник должен быть настоящим
+  // пользователем: join с `auth.users` — часть контракта read-модели.
+  const createUser = async () => {
+    const email = `share-user-${randomUUID()}@example.com`;
+    const result = await db.execute<{ id: string }>(
+      sql`insert into auth.users (email, password_hash) values (${email}, 'x') returning id`,
+    );
+
+    return { id: result.rows[0]!.id, email };
+  };
+
   beforeAll(async () => {
     const moduleRef = await createTestingModule();
 
@@ -135,16 +146,18 @@ where document_id = ${id}`,
 
   it('перечисляет share документа в порядке выдачи', async () => {
     const target = documentId();
+    const first = await createUser();
+    const second = await createUser();
 
     await repository.upsert({
       documentId: target,
-      userId: randomUUID(),
+      userId: first.id,
       role: 'viewer',
       actorId,
     });
     await repository.upsert({
       documentId: target,
-      userId: randomUUID(),
+      userId: second.id,
       role: 'editor',
       actorId,
     });
@@ -152,5 +165,8 @@ where document_id = ${id}`,
     const shares = await repository.listByDocument(target);
 
     expect(shares).toHaveLength(2);
+    expect(shares.map((share) => share.email)).toEqual(
+      expect.arrayContaining([first.email, second.email]),
+    );
   });
 });

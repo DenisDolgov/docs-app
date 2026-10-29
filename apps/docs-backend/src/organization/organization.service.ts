@@ -10,6 +10,7 @@ import {
 import { EmailVerificationPolicy } from '../auth/email-verification-policy';
 import { UserRepository } from '../auth/user.repository';
 import { normalizeEmail } from '../common/utils/email';
+import { UnitOfWork } from '../database/unit-of-work';
 import {
   ORGANIZATION_NOT_FOUND_ERROR,
   USER_ALREADY_MEMBER_ERROR,
@@ -34,24 +35,36 @@ export class OrganizationService {
     private readonly organizationMemberRepository: OrganizationMemberRepository,
     private readonly userRepository: UserRepository,
     private readonly emailVerificationPolicy: EmailVerificationPolicy,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   public async create({ userId, name }: CreateOrganizationParams) {
     await this.emailVerificationPolicy.assertEmailVerified(userId);
 
-    const { id: organizationId, name: organizationName } =
-      await this.organizationRepository.create({ name });
+    // Организация без владельца — битая строка, которую некому починить.
+    // Оба insert'а должны стать видимыми вместе или не стать вовсе.
+    return this.unitOfWork.run(async (tx) => {
+      const { id: organizationId, name: organizationName } =
+        await this.organizationRepository.create({ name }, tx);
 
-    await this.organizationMemberRepository.create({
-      userId,
-      organizationId,
-      role: 'owner',
+      await this.organizationMemberRepository.create(
+        {
+          userId,
+          organizationId,
+          role: 'owner',
+        },
+        tx,
+      );
+
+      return {
+        id: organizationId,
+        name: organizationName,
+      };
     });
+  }
 
-    return {
-      id: organizationId,
-      name: organizationName,
-    };
+  public async findOrganization(organizationId: string) {
+    return this.organizationRepository.findById(organizationId);
   }
 
   public async listForUser(userId: string) {

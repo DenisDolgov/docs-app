@@ -1,14 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import { DATABASE, Database } from '../database/database.constants';
+import {
+  DATABASE,
+  Database,
+  type DbExecutor,
+} from '../database/database.constants';
 import * as schema from '../database/schema';
 
 @Injectable()
 export class OrganizationMemberRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  public async create(data: typeof schema.organizationMembers.$inferInsert) {
-    const [record] = await this.db
+  public async create(
+    data: typeof schema.organizationMembers.$inferInsert,
+    db: DbExecutor = this.db,
+  ) {
+    const [record] = await db
       .insert(schema.organizationMembers)
       .values(data)
       .returning({
@@ -21,8 +28,12 @@ export class OrganizationMemberRepository {
     return record;
   }
 
-  public async findByOrgAndUser(organizationId: string, userId: string) {
-    const record = await this.db.query.organizationMembers.findFirst({
+  public async findByOrgAndUser(
+    organizationId: string,
+    userId: string,
+    db: DbExecutor = this.db,
+  ) {
+    const record = await db.query.organizationMembers.findFirst({
       where: {
         organizationId,
         userId,

@@ -4,12 +4,15 @@ import {
   ExternalLinkIcon,
   FilePenIcon,
   MoreVerticalIcon,
+  Share2Icon,
   TrashIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { useAuth } from '@/components/auth-provider';
 import { RemoveDocumentDialog } from '@/components/remove-document-dialog';
 import { RenameDocumentDialog } from '@/components/rename-document-dialog';
+import { ShareDocumentDialog } from '@/components/share-document-dialog';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -32,6 +35,12 @@ export const DocumentMenu = ({
 }: DocumentMenuProps) => {
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const { user } = useAuth();
+
+  // Управление доступом — только у владельца. Владелец документа в UI — его
+  // создатель: редактор по share кнопку не получает, чтобы не ловить 403.
+  const canShare = user?.id === document.createdBy;
 
   return (
     <DropdownMenu>
@@ -60,6 +69,12 @@ export const DocumentMenu = ({
           <ExternalLinkIcon className="size-4" />
           Открыть в новой вкладке
         </DropdownMenuItem>
+        {canShare && (
+          <DropdownMenuItem onClick={() => setIsShareOpen(true)}>
+            <Share2Icon className="size-4" />
+            Поделиться
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
       <RemoveDocumentDialog
         document={document}
@@ -72,6 +87,11 @@ export const DocumentMenu = ({
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
         onRenamed={onChanged}
+      />
+      <ShareDocumentDialog
+        document={document}
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
       />
     </DropdownMenu>
   );

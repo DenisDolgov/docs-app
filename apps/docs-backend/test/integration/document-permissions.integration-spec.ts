@@ -211,7 +211,10 @@ describe('document permissions (integration)', () => {
       actorId: owner.id,
     });
 
-    const granted = await shares.list(document.id);
+    const granted = await shares.list({
+      documentId: document.id,
+      actorId: owner.id,
+    });
 
     expect(granted).toHaveLength(1);
     expect(granted[0]).toMatchObject({ userId: viewer.id, role: 'editor' });

@@ -4,6 +4,7 @@ import {
   index,
   pgEnum,
   snakeCase,
+  text,
   timestamp,
   unique,
   uuid,
@@ -32,5 +33,28 @@ export const documentShares = permissionSchema.table(
     unique('document_share_unique').on(table.documentId, table.userId),
     // Для списка доступных документов: поиск share'ов по пользователю.
     index('document_share_user_id_idx').on(table.userId),
+  ],
+);
+
+// Публичная ссылка — capability: доступ получает любой, у кого токен. Поэтому
+// в БД только хеш. `role` — задел: в v1.0 ссылка всегда даёт чтение, домен
+// уровень из строки не читает (см. `PublicLinkResolver`). Строка не удаляется
+// при отзыве: отозванная и просроченная ссылки неразличимы снаружи (обе 404).
+export const publicLinks = permissionSchema.table(
+  'public_links',
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    documentId: uuid().notNull(),
+    tokenHash: text().notNull().unique(),
+    role: documentShareRoleEnum().notNull().default('viewer'),
+    expiresAt: timestamp({ withTimezone: true }),
+    revokedAt: timestamp({ withTimezone: true }),
+    createdBy: uuid().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Список ссылок документа и уборка: сам поиск идёт по unique(token_hash).
+    index('public_link_document_id_idx').on(table.documentId),
+    index('public_link_expires_at_idx').on(table.expiresAt),
   ],
 );

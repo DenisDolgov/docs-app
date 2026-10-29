@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -7,6 +7,7 @@ import { AuthService } from '../../src/auth/auth.service';
 import { UserRepository } from '../../src/auth/user.repository';
 import { DATABASE, type Database } from '../../src/database/database.constants';
 import { OrganizationService } from '../../src/organization/organization.service';
+import { OrganizationInviteService } from '../../src/organization/organization-invite.service';
 import { createTestingModule } from '../utils';
 
 const PASSWORD = 'correct horse battery staple';
@@ -16,6 +17,7 @@ describe('organizations (integration)', () => {
   let auth: AuthService;
   let users: UserRepository;
   let organizationService: OrganizationService;
+  let invites: OrganizationInviteService;
   let db: Database;
   let close: () => Promise<void>;
 
@@ -36,6 +38,7 @@ describe('organizations (integration)', () => {
     auth = moduleRef.get(AuthService);
     users = moduleRef.get(UserRepository);
     organizationService = moduleRef.get(OrganizationService);
+    invites = moduleRef.get(OrganizationInviteService);
     db = moduleRef.get(DATABASE);
     close = () => moduleRef.close();
   });
@@ -197,5 +200,55 @@ where organization_id = ${organization.id} and user_id = ${target.id}`,
 
     expect(firstList.map((item) => item.id)).toContain(organization.id);
     expect(secondList.map((item) => item.id)).not.toContain(organization.id);
+  });
+
+  it('участник с ролью member не может приглашать', async () => {
+    const owner = await register();
+    const member = await register();
+    const target = await register();
+    const organization = await organizationService.create({
+      userId: owner.id,
+      name: 'Acme',
+    });
+
+    await organizationService.addMember({
+      organizationId: organization.id,
+      actorId: owner.id,
+      email: member.email,
+      role: 'member',
+    });
+
+    await expect(
+      invites.invite({
+        organizationId: organization.id,
+        actorId: member.id,
+        email: target.email,
+        role: 'member',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('неподтверждённый владелец не может приглашать', async () => {
+    const owner = await register();
+    const target = await register();
+    const organization = await organizationService.create({
+      userId: owner.id,
+      name: 'Acme',
+    });
+
+    // Создание организации проверило флаг, но приглашение проверяет его снова:
+    // снять подтверждение можно и после создания.
+    await db.execute(
+      sql`update auth.users set email_verified_at = null where id = ${owner.id}`,
+    );
+
+    await expect(
+      invites.invite({
+        organizationId: organization.id,
+        actorId: owner.id,
+        email: target.email,
+        role: 'member',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

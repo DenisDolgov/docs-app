@@ -8,10 +8,15 @@ import { DocumentController } from './document.controller';
 import { DocumentRepository } from './document.repository';
 import { DocumentService } from './document.service';
 import { OrganizationDocumentController } from './organization-document.controller';
+import { PublicDocumentController } from './public-document.controller';
 
 @Module({
   imports: [DatabaseModule, AuthModule, OrganizationModule, PermissionModule],
   providers: [DocumentRepository, DocumentService],
-  controllers: [DocumentController, OrganizationDocumentController],
+  controllers: [
+    DocumentController,
+    OrganizationDocumentController,
+    PublicDocumentController,
+  ],
 })
 export class DocumentModule {}

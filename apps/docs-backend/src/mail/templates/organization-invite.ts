@@ -1,4 +1,3 @@
-import { ORGANIZATION_INVITE_LINK_TTL_DAYS } from '../mail.constants';
 import type { RenderedMail } from '../mail.models';
 import { button, paragraph, plainLink, renderLayout } from './layout';
 
@@ -6,12 +5,14 @@ export const organizationInviteTemplate = ({
   link,
   organizationName,
   inviterEmail,
+  ttlDays,
 }: {
   link: string;
   organizationName: string;
   inviterEmail: string;
+  ttlDays: number;
 }): RenderedMail => {
-  const ttl = `${ORGANIZATION_INVITE_LINK_TTL_DAYS} дн.`;
+  const ttl = `${ttlDays} дн.`;
 
   // В `text` разметки нет, поэтому название остаётся как ввёл пользователь.
   // В `html` оно проходит через `paragraph`/`renderLayout`, где экранируется.

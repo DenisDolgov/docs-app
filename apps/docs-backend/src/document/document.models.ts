@@ -39,3 +39,8 @@ export interface UpdateDocumentParams extends GetDocumentParams {
 }
 
 export type RemoveDocumentParams = GetDocumentParams;
+
+// Публичное чтение: аккаунта нет, право уже доказано токеном ссылки.
+export interface GetPublicDocumentParams {
+  documentId: string;
+}

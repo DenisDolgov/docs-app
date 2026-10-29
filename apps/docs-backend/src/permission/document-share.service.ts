@@ -1,20 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { UserRepository } from '../auth/user.repository';
+import { normalizeEmail } from '../common/utils/email';
+import { USER_NOT_FOUND_ERROR } from '../organization/errors';
 import { AccessPolicyService } from './access-policy.service';
 import { DocumentShareRepository } from './document-share.repository';
 import type {
+  DocumentShareListItem,
   DocumentShareView,
+  GrantDocumentShareByEmailParams,
   GrantDocumentShareParams,
+  ListDocumentSharesParams,
   RevokeDocumentShareParams,
 } from './permission.models';
 
-// Выдача и отзыв share. HTTP-слой появится в M1.5; здесь — доменные операции,
-// которые обязаны инвалидировать кэш, иначе отзыв доедет только через TTL.
+// Выдача и отзыв share. Каждая операция, меняющая состав доступа, обязана
+// инвалидировать кэш: иначе отзыв доедет только через TTL.
 @Injectable()
 export class DocumentShareService {
   constructor(
     private readonly documentShareRepository: DocumentShareRepository,
     private readonly accessPolicy: AccessPolicyService,
+    private readonly userRepository: UserRepository,
   ) {}
 
   // Выдавать share может только владелец документа: `editor` управляет
@@ -39,6 +46,27 @@ export class DocumentShareService {
     return share;
   }
 
+  // HTTP-вход работает по email: uuid получателя клиенту неизвестен.
+  public async grantByEmail({
+    documentId,
+    email,
+    role,
+    actorId,
+  }: GrantDocumentShareByEmailParams) {
+    const user = await this.userRepository.findByEmail(normalizeEmail(email));
+
+    if (!user) throw new NotFoundException(USER_NOT_FOUND_ERROR);
+
+    const share = await this.grant({
+      documentId,
+      userId: user.id,
+      role,
+      actorId,
+    });
+
+    return { ...share, email: user.email };
+  }
+
   public async revoke({
     documentId,
     userId,
@@ -56,7 +84,12 @@ export class DocumentShareService {
     return removed;
   }
 
-  public list(documentId: string): Promise<DocumentShareView[]> {
+  public async list({
+    documentId,
+    actorId,
+  }: ListDocumentSharesParams): Promise<DocumentShareListItem[]> {
+    await this.assertCanManageShares(documentId, actorId);
+
     return this.documentShareRepository.listByDocument(documentId);
   }
 

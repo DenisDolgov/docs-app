@@ -50,6 +50,7 @@ export class MailService {
     token,
     organizationName,
     inviterEmail,
+    ttlDays,
   }: SendOrganizationInviteParams) {
     return this.deliver(
       to,
@@ -57,6 +58,7 @@ export class MailService {
         link: this.link('/invite', token),
         organizationName,
         inviterEmail,
+        ttlDays,
       }),
     );
   }

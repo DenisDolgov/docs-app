@@ -24,6 +24,8 @@ export interface SendOrganizationInviteParams {
   token: string;
   organizationName: string;
   inviterEmail: string;
+  // Срок задаёт домен приглашений: шаблон только озвучивает его.
+  ttlDays: number;
 }
 
 export interface RenderedMail {

@@ -9,6 +9,7 @@ const publicRoutes = [
   '/forgot-password',
   '/reset-password',
   '/verify-email',
+  '/invite',
 ];
 
 // С этих страниц авторизованного пользователя уводим на главную. Ссылки из
@@ -19,7 +20,8 @@ const guestOnlyRoutes = ['/login', '/register'];
 export const proxy = (request: NextRequest) => {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(ACCESS_COOKIE_NAME);
-  const isPublic = publicRoutes.includes(pathname);
+  const isPublic =
+    publicRoutes.includes(pathname) || pathname.startsWith('/public/');
 
   if (!hasSession && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url));

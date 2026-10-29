@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EmailVerificationPolicy } from '../../src/auth/email-verification-policy';
 import { UserRepository } from '../../src/auth/user.repository';
+import { UnitOfWork } from '../../src/database/unit-of-work';
 import { OrganizationRepository } from '../../src/organization/organization.repository';
 import { OrganizationService } from '../../src/organization/organization.service';
 import { OrganizationMemberRepository } from '../../src/organization/organization-member.repository';
@@ -39,6 +40,12 @@ const usersRepository = {
 // организация создаётся после того, как политика пропустила создателя.
 const emailVerificationPolicy = {
   assertEmailVerified: vi.fn(),
+};
+
+// Транзакция в юнит-тесте — просто «выполни работу»: проверяем сервис, а не
+// Postgres. Ошибка внутри работы должна долетать до вызывающего.
+const unitOfWork = {
+  run: vi.fn(async (work: (tx: unknown) => Promise<unknown>) => work({})),
 };
 
 const actorWithRole = (role: string, actorId = OWNER_ID) => {
@@ -73,6 +80,7 @@ describe('OrganizationsService', () => {
           provide: EmailVerificationPolicy,
           useValue: emailVerificationPolicy,
         },
+        { provide: UnitOfWork, useValue: unitOfWork },
       ],
     }).compile();
 
@@ -97,14 +105,18 @@ describe('OrganizationsService', () => {
         name: 'Acme',
       });
 
-      expect(organizationsRepository.create).toHaveBeenCalledWith({
-        name: 'Acme',
-      });
-      expect(organizationMembersRepository.create).toHaveBeenCalledWith({
-        organizationId: ORGANIZATION_ID,
-        userId: OWNER_ID,
-        role: 'owner',
-      });
+      expect(organizationsRepository.create).toHaveBeenCalledWith(
+        { name: 'Acme' },
+        expect.anything(),
+      );
+      expect(organizationMembersRepository.create).toHaveBeenCalledWith(
+        {
+          organizationId: ORGANIZATION_ID,
+          userId: OWNER_ID,
+          role: 'owner',
+        },
+        expect.anything(),
+      );
       expect(organization).toEqual({ id: ORGANIZATION_ID, name: 'Acme' });
     });
   });

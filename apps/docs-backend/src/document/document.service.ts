@@ -7,6 +7,7 @@ import {
   CreatePersonalDocumentParams,
   GetDocumentParams,
   GetOrganizationDocumentsParams,
+  GetPublicDocumentParams,
   ListAccessibleDocumentsParams,
   RemoveDocumentParams,
   UpdateDocumentParams,
@@ -22,7 +23,7 @@ export class DocumentService {
     private readonly accessPolicy: AccessPolicyService,
   ) {}
 
-  public async createInOrganization({
+  async createInOrganization({
     organizationId,
     actorId,
     title,
@@ -36,17 +37,14 @@ export class DocumentService {
     });
   }
 
-  public async createPersonal({
-    actorId,
-    title,
-  }: CreatePersonalDocumentParams) {
+  async createPersonal({ actorId, title }: CreatePersonalDocumentParams) {
     return await this.documentRepository.create({
       createdBy: actorId,
       title,
     });
   }
 
-  public async listInOrganization({
+  async listInOrganization({
     organizationId,
     actorId,
   }: GetOrganizationDocumentsParams) {
@@ -55,11 +53,11 @@ export class DocumentService {
     return this.documentRepository.listByOrganization(organizationId);
   }
 
-  public async listAccessible({ actorId }: ListAccessibleDocumentsParams) {
+  async listAccessible({ actorId }: ListAccessibleDocumentsParams) {
     return this.documentRepository.listAccessible(actorId);
   }
 
-  public async get({ actorId, documentId }: GetDocumentParams) {
+  async get({ actorId, documentId }: GetDocumentParams) {
     await this.accessPolicy.assertDocumentAccess({
       documentId,
       principal: { userId: actorId },
@@ -73,7 +71,15 @@ export class DocumentService {
     return document;
   }
 
-  public async update({ actorId, documentId, title }: UpdateDocumentParams) {
+  async getPublic({ documentId }: GetPublicDocumentParams) {
+    const document = await this.documentRepository.findById(documentId);
+
+    if (!document) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
+
+    return document;
+  }
+
+  async update({ actorId, documentId, title }: UpdateDocumentParams) {
     await this.accessPolicy.assertDocumentAccess({
       documentId,
       principal: { userId: actorId },
@@ -87,7 +93,7 @@ export class DocumentService {
     return document;
   }
 
-  public async remove({ actorId, documentId }: RemoveDocumentParams) {
+  async remove({ actorId, documentId }: RemoveDocumentParams) {
     await this.accessPolicy.assertDocumentAccess({
       documentId,
       principal: { userId: actorId },
@@ -98,8 +104,6 @@ export class DocumentService {
 
     if (!removed) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
 
-    // Документа больше нет: снимаем с кэша и его права, чтобы записи не жили
-    // до TTL.
     await this.accessPolicy.invalidateDocument(documentId);
   }
 }

@@ -1,7 +1,4 @@
-import {
-  type DocumentAccessLevel,
-  documentIdSchema,
-} from '@docs-app/contracts/document';
+import { documentIdSchema } from '@docs-app/contracts/document';
 import { documentRoute } from '@docs-app/contracts/document/routes';
 import {
   type CanActivate,
@@ -15,6 +12,7 @@ import type { AccessTokenPayload } from '../auth/auth.models';
 import { ValidationException } from '../common/validation.exception';
 import { DOCUMENT_NOT_FOUND_ERROR } from '../document/errors';
 import { AccessPolicyService } from './access-policy.service';
+import type { EffectiveAccessLevel } from './permission.models';
 import { REQUIRED_DOCUMENT_ACCESS } from './require-permission.decorator';
 
 interface PermissionRequest {
@@ -34,7 +32,7 @@ export class PermissionGuard implements CanActivate {
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const required = this.reflector.getAllAndOverride<
-      DocumentAccessLevel | undefined
+      EffectiveAccessLevel | undefined
     >(REQUIRED_DOCUMENT_ACCESS, [context.getHandler(), context.getClass()]);
 
     if (!required) return true;

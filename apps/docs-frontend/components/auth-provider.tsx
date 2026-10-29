@@ -49,7 +49,12 @@ const publicAuthRoutes = [
   '/forgot-password',
   '/reset-password',
   '/verify-email',
+  '/invite',
 ];
+
+// Публичный просмотр открыт без сессии и живёт в отдельном префиксе.
+const isPublicRoute = (pathname: string) =>
+  publicAuthRoutes.includes(pathname) || pathname.startsWith('/public/');
 
 // Со страниц входа и регистрации авторизованного пользователя уводим на
 // главную. Остальные публичные страницы открываются как есть: иначе переход
@@ -122,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setStatus('unauthenticated');
 
-      if (!publicAuthRoutes.includes(pathname)) {
+      if (!isPublicRoute(pathname)) {
         router.replace('/login');
       }
     });
@@ -133,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (status === 'loading') return;
 
-    const isPublic = publicAuthRoutes.includes(pathname);
+    const isPublic = isPublicRoute(pathname);
 
     if (status === 'unauthenticated' && !isPublic) {
       router.replace('/login');
