@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -62,42 +63,46 @@ export const OrganizationSwitcher = () => {
           }
         />
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Контекст создания</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setCurrentOrganizationId(null)}>
-            <CircleUserIcon className="size-4" />
-            <span className="truncate">Персональный</span>
-            {!currentOrganizationId && <CheckIcon className="ml-auto size-4" />}
-          </DropdownMenuItem>
-          {organizations.map((organization) => (
-            <DropdownMenuItem
-              key={organization.id}
-              onClick={() => setCurrentOrganizationId(organization.id)}
-            >
-              <Building2Icon className="size-4" />
-              <span className="truncate">{organization.name}</span>
-              {currentOrganizationId === organization.id && (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Контекст создания</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setCurrentOrganizationId(null)}>
+              <CircleUserIcon className="size-4" />
+              <span className="truncate">Персональный</span>
+              {!currentOrganizationId && (
                 <CheckIcon className="ml-auto size-4" />
               )}
             </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsCreateOpen(true)}>
-            <PlusIcon className="size-4" />
-            Создать организацию
-          </DropdownMenuItem>
-          {currentOrganization && (
-            <DropdownMenuItem onClick={() => setIsMembersOpen(true)}>
-              <UsersIcon className="size-4" />
-              Участники
+            {organizations.map((organization) => (
+              <DropdownMenuItem
+                key={organization.id}
+                onClick={() => setCurrentOrganizationId(organization.id)}
+              >
+                <Building2Icon className="size-4" />
+                <span className="truncate">{organization.name}</span>
+                {currentOrganizationId === organization.id && (
+                  <CheckIcon className="ml-auto size-4" />
+                )}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setIsCreateOpen(true)}>
+              <PlusIcon className="size-4" />
+              Создать организацию
             </DropdownMenuItem>
-          )}
-          {currentOrganization && canManage && (
-            <DropdownMenuItem onClick={() => setIsInvitesOpen(true)}>
-              <MailPlusIcon className="size-4" />
-              Приглашения
-            </DropdownMenuItem>
-          )}
+            {currentOrganization && (
+              <DropdownMenuItem onClick={() => setIsMembersOpen(true)}>
+                <UsersIcon className="size-4" />
+                Участники
+              </DropdownMenuItem>
+            )}
+            {currentOrganization && canManage && (
+              <DropdownMenuItem onClick={() => setIsInvitesOpen(true)}>
+                <MailPlusIcon className="size-4" />
+                Приглашения
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
 

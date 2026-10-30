@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -62,33 +63,35 @@ export const UserMenu = () => {
           }
         />
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel className="max-w-[220px] truncate">
-            {user.email}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {!user.emailVerified && (
-            <DropdownMenuItem onClick={handleResend} disabled={isSending}>
-              {isSending ? (
-                <Spinner className="size-4" />
-              ) : (
-                <MailWarningIcon className="size-4" />
-              )}
-              Подтвердить почту
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="max-w-[220px] truncate">
+              {user.email}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {!user.emailVerified && (
+              <DropdownMenuItem onClick={handleResend} disabled={isSending}>
+                {isSending ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <MailWarningIcon className="size-4" />
+                )}
+                Подтвердить почту
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => setIsSessionsOpen(true)}>
+              <MonitorSmartphoneIcon className="size-4" />
+              Устройства и сессии
             </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={() => setIsSessionsOpen(true)}>
-            <MonitorSmartphoneIcon className="size-4" />
-            Устройства и сессии
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => logout()}>
-            <LogOutIcon className="size-4" />
-            Выйти
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => logoutAll()}>
-            <MonitorXIcon className="size-4" />
-            Выйти на всех устройствах
-          </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => logout()}>
+              <LogOutIcon className="size-4" />
+              Выйти
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => logoutAll()}>
+              <MonitorXIcon className="size-4" />
+              Выйти на всех устройствах
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
       <SessionsDialog open={isSessionsOpen} onOpenChange={setIsSessionsOpen} />
