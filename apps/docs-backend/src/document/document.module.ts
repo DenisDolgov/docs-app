@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { OrganizationModule } from '../organization/organization.module';
@@ -11,7 +12,13 @@ import { OrganizationDocumentController } from './organization-document.controll
 import { PublicDocumentController } from './public-document.controller';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, OrganizationModule, PermissionModule],
+  imports: [
+    DatabaseModule,
+    AuthModule,
+    OrganizationModule,
+    PermissionModule,
+    AuditModule,
+  ],
   providers: [DocumentRepository, DocumentService],
   controllers: [
     DocumentController,

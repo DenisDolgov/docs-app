@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
+import { AuditModule } from '../audit/audit.module';
 import { DatabaseModule } from '../database/database.module';
 import { MailModule } from '../mail/mail.module';
 import { ACCESS_TOKEN_TTL } from './auth.constants';
@@ -19,6 +20,7 @@ import { UserRepository } from './user.repository';
 @Module({
   imports: [
     DatabaseModule,
+    AuditModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

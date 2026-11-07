@@ -101,7 +101,7 @@ export class AuthController {
     const refreshToken = req.cookies[REFRESH_COOKIE_NAME];
 
     if (refreshToken) {
-      await this.authService.logout(refreshToken);
+      await this.authService.logout(refreshToken, readSessionMetadata(req));
     }
 
     this.clearAuthCookies(res);
@@ -116,7 +116,7 @@ export class AuthController {
     const refreshToken = req.cookies[REFRESH_COOKIE_NAME];
 
     if (refreshToken) {
-      await this.authService.logoutAll(refreshToken);
+      await this.authService.logoutAll(refreshToken, readSessionMetadata(req));
     }
 
     this.clearAuthCookies(res);
@@ -167,9 +167,10 @@ export class AuthController {
   @Post(authRoute.verifyEmail)
   @HttpCode(HttpStatus.NO_CONTENT)
   verifyEmail(
+    @Req() req: Request,
     @Body({ schema: verifyEmailDto }) body: VerifyEmailDto,
   ): Promise<void> {
-    return this.authService.verifyEmail(body.token);
+    return this.authService.verifyEmail(body.token, readSessionMetadata(req));
   }
 
   @Post(authRoute.resendEmail)
@@ -184,8 +185,11 @@ export class AuthController {
 
   @Post(authRoute.resetPassword)
   @HttpCode(HttpStatus.NO_CONTENT)
-  resetPassword(@Body({ schema: resetPasswordDto }) body: ResetPasswordDto) {
-    return this.authService.resetPassword(body);
+  resetPassword(
+    @Req() req: Request,
+    @Body({ schema: resetPasswordDto }) body: ResetPasswordDto,
+  ) {
+    return this.authService.resetPassword(body, readSessionMetadata(req));
   }
 
   @Post(authRoute.requestPasswordReset)

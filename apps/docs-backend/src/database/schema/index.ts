@@ -1,5 +1,6 @@
 import { defineRelations } from 'drizzle-orm';
 
+import { auditEvents } from './audit';
 import { documentSnapshots, documentUpdates } from './collab';
 import { documents } from './documents';
 import {
@@ -15,6 +16,7 @@ import {
   users,
 } from './users';
 
+export { auditEvents, auditSchema } from './audit';
 export { collabSchema, documentSnapshots, documentUpdates } from './collab';
 export { documents, documentsSchema } from './documents';
 export {
@@ -54,6 +56,7 @@ export const relations = defineRelations(
     documentShares,
     organizationInvites,
     publicLinks,
+    auditEvents,
   },
   (r) => ({
     organizationMembers: {

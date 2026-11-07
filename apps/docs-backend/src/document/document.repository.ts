@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { desc, eq, getColumns, or, sql } from 'drizzle-orm';
 
-import { DATABASE, Database } from '../database/database.constants';
+import {
+  DATABASE,
+  Database,
+  type DbExecutor,
+} from '../database/database.constants';
 import * as schema from '../database/schema';
 import { DocumentView } from './document.models';
 
@@ -106,8 +110,11 @@ export class DocumentRepository {
     return document ? toDocumentView(document) : null;
   }
 
-  public async remove(documentId: string): Promise<boolean> {
-    const removed = await this.db
+  public async remove(
+    documentId: string,
+    db: DbExecutor = this.db,
+  ): Promise<boolean> {
+    const removed = await db
       .delete(schema.documents)
       .where(eq(schema.documents.id, documentId))
       .returning({ id: schema.documents.id });

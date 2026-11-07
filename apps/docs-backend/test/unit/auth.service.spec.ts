@@ -8,6 +8,7 @@ import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuditService } from '../../src/audit/audit.service';
 import { AuthService } from '../../src/auth/auth.service';
 import { EmailVerificationTokenRepository } from '../../src/auth/email-verification-token.repository';
 import { PasswordResetTokenRepository } from '../../src/auth/password-reset-token.repository';
@@ -70,6 +71,10 @@ const unitOfWork = {
   run: vi.fn(),
 };
 
+const auditService = {
+  recordBestEffort: vi.fn(),
+};
+
 describe('AuthService (unit)', () => {
   let service: AuthService;
 
@@ -99,6 +104,7 @@ describe('AuthService (unit)', () => {
         { provide: UnitOfWork, useValue: unitOfWork },
         { provide: MailService, useValue: mailService },
         { provide: JwtService, useValue: jwtService },
+        { provide: AuditService, useValue: auditService },
       ],
     }).compile();
 

@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { DATABASE, type Database } from '../database/database.constants';
+import {
+  DATABASE,
+  type Database,
+  type DbExecutor,
+} from '../database/database.constants';
 import * as schema from '../database/schema';
 import type {
   CreatePublicLinkParams,
@@ -24,13 +28,16 @@ export const toPublicLinkView = (row: PublicLinkRow): PublicLinkView => ({
 export class PublicLinkRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  public async create({
-    documentId,
-    actorId,
-    expiresAt,
-    tokenHash,
-  }: CreatePublicLinkParams & { tokenHash: string }): Promise<PublicLinkRow> {
-    const [row] = await this.db
+  public async create(
+    {
+      documentId,
+      actorId,
+      expiresAt,
+      tokenHash,
+    }: CreatePublicLinkParams & { tokenHash: string },
+    db: DbExecutor = this.db,
+  ): Promise<PublicLinkRow> {
+    const [row] = await db
       .insert(schema.publicLinks)
       .values({ documentId, createdBy: actorId, expiresAt, tokenHash })
       .returning();
@@ -67,8 +74,12 @@ export class PublicLinkRepository {
   }
 
   // Отзыв идемпотентен: уже отозванная ссылка не обновляется повторно.
-  public async revoke(documentId: string, linkId: string): Promise<boolean> {
-    const rows = await this.db
+  public async revoke(
+    documentId: string,
+    linkId: string,
+    db: DbExecutor = this.db,
+  ): Promise<boolean> {
+    const rows = await db
       .update(schema.publicLinks)
       .set({ revokedAt: new Date() })
       .where(

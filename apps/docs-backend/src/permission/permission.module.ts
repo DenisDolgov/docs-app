@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { OrganizationModule } from '../organization/organization.module';
@@ -17,7 +18,13 @@ import { PublicLinkResolver } from './public-link.resolver';
 import { PublicLinkService } from './public-link.service';
 
 @Module({
-  imports: [DatabaseModule, RedisModule, OrganizationModule, AuthModule],
+  imports: [
+    DatabaseModule,
+    RedisModule,
+    OrganizationModule,
+    AuthModule,
+    AuditModule,
+  ],
   providers: [
     DocumentAccessRepository,
     DocumentShareRepository,

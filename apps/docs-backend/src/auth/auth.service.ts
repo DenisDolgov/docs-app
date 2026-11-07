@@ -10,6 +10,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 
+import { AuditService } from '../audit/audit.service';
 import { normalizeEmail } from '../common/utils/email';
 import type { DbExecutor } from '../database/database.constants';
 import { isUniqueViolation } from '../database/sql-errors';
@@ -60,6 +61,7 @@ export class AuthService implements OnModuleInit {
     private readonly unitOfWork: UnitOfWork,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly auditService: AuditService,
   ) {}
 
   async onModuleInit() {
@@ -116,10 +118,26 @@ export class AuthService implements OnModuleInit {
     if (!isVerify)
       throw new UnauthorizedException(INVALID_EMAIL_OR_PASSWORD_ERROR);
 
-    return this.issueTokens({ id: user.id, email: user.email }, undefined, {
-      userAgent: userAgent ?? null,
+    const tokens = await this.issueTokens(
+      { id: user.id, email: user.email },
+      undefined,
+      {
+        userAgent: userAgent ?? null,
+        ip: ip ?? null,
+      },
+    );
+
+    // Вход не должен зависеть от журнала: недоступный audit не отменяет сессию.
+    await this.auditService.recordBestEffort({
+      actorId: user.id,
+      action: 'auth.login',
+      targetType: 'user',
+      targetId: user.id,
       ip: ip ?? null,
+      userAgent: userAgent ?? null,
     });
+
+    return tokens;
   }
 
   async refresh(refreshToken: string) {
@@ -184,7 +202,7 @@ export class AuthService implements OnModuleInit {
     return rotated;
   }
 
-  async logout(refreshToken: string) {
+  async logout(refreshToken: string, metadata?: SessionMetadata) {
     const tokenHash = hashToken(refreshToken);
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
 
@@ -194,18 +212,36 @@ export class AuthService implements OnModuleInit {
       tokenRecord.sessionId,
       'logout',
     );
+
+    await this.auditService.recordBestEffort({
+      actorId: tokenRecord.userId,
+      action: 'auth.logout',
+      targetType: 'user',
+      targetId: tokenRecord.userId,
+      ip: metadata?.ip ?? null,
+      userAgent: metadata?.userAgent ?? null,
+    });
   }
 
-  async logoutAll(refreshToken: string) {
+  async logoutAll(refreshToken: string, metadata?: SessionMetadata) {
     const tokenHash = hashToken(refreshToken);
     const tokenRecord = await this.refreshTokenRepository.findByHash(tokenHash);
 
     if (!tokenRecord) return;
 
-    return this.refreshTokenRepository.revokeAllByUser(
+    await this.refreshTokenRepository.revokeAllByUser(
       tokenRecord.userId,
       'logout_all',
     );
+
+    await this.auditService.recordBestEffort({
+      actorId: tokenRecord.userId,
+      action: 'auth.logout_all',
+      targetType: 'user',
+      targetId: tokenRecord.userId,
+      ip: metadata?.ip ?? null,
+      userAgent: metadata?.userAgent ?? null,
+    });
   }
 
   async listSessions(
@@ -258,7 +294,7 @@ export class AuthService implements OnModuleInit {
     this.sendVerificationEmail(email, token);
   }
 
-  async verifyEmail(token: string) {
+  async verifyEmail(token: string, metadata?: SessionMetadata) {
     const tokenRecord = await this.emailVerificationTokenRepository.consume(
       hashToken(token),
     );
@@ -268,6 +304,15 @@ export class AuthService implements OnModuleInit {
     }
 
     await this.userRepository.markEmailVerified(tokenRecord.userId);
+
+    await this.auditService.recordBestEffort({
+      actorId: tokenRecord.userId,
+      action: 'auth.email_verified',
+      targetType: 'user',
+      targetId: tokenRecord.userId,
+      ip: metadata?.ip ?? null,
+      userAgent: metadata?.userAgent ?? null,
+    });
   }
 
   async requestPasswordReset(email: string) {
@@ -287,7 +332,10 @@ export class AuthService implements OnModuleInit {
     this.sendPasswordResetEmail(userRecord.email, token);
   }
 
-  async resetPassword({ password, token }: ResetPasswordParams) {
+  async resetPassword(
+    { password, token }: ResetPasswordParams,
+    metadata?: SessionMetadata,
+  ) {
     const tokenHash = hashToken(token);
 
     // Дешёвое чтение без блокировки: нужно знать пользователя, чтобы взять тот
@@ -335,6 +383,15 @@ export class AuthService implements OnModuleInit {
         userRecord.id,
         tx,
       );
+    });
+
+    await this.auditService.recordBestEffort({
+      actorId: activeToken.userId,
+      action: 'auth.password_reset',
+      targetType: 'user',
+      targetId: activeToken.userId,
+      ip: metadata?.ip ?? null,
+      userAgent: metadata?.userAgent ?? null,
     });
   }
 

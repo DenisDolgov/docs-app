@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { AuditService } from '../audit/audit.service';
 import { UserRepository } from '../auth/user.repository';
 import { normalizeEmail } from '../common/utils/email';
+import { UnitOfWork } from '../database/unit-of-work';
 import { USER_NOT_FOUND_ERROR } from '../organization/errors';
 import { AccessPolicyService } from './access-policy.service';
 import { DocumentShareRepository } from './document-share.repository';
@@ -22,6 +24,8 @@ export class DocumentShareService {
     private readonly documentShareRepository: DocumentShareRepository,
     private readonly accessPolicy: AccessPolicyService,
     private readonly userRepository: UserRepository,
+    private readonly auditService: AuditService,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   // Выдавать share может только владелец документа: `editor` управляет
@@ -34,11 +38,32 @@ export class DocumentShareService {
   }: GrantDocumentShareParams): Promise<DocumentShareView> {
     await this.assertCanManageShares(documentId, actorId);
 
-    const share = await this.documentShareRepository.upsert({
-      documentId,
-      userId,
-      role,
-      actorId,
+    const share = await this.unitOfWork.run(async (tx) => {
+      const share = await this.documentShareRepository.upsert(
+        {
+          documentId,
+          userId,
+          role,
+          actorId,
+        },
+        tx,
+      );
+
+      await this.auditService.record(
+        {
+          actorId,
+          action: 'document_share.granted',
+          targetType: 'document',
+          targetId: documentId,
+          metadata: {
+            role,
+            userId,
+          },
+        },
+        tx,
+      );
+
+      return share;
     });
 
     await this.accessPolicy.invalidateDocument(documentId);
@@ -74,10 +99,29 @@ export class DocumentShareService {
   }: RevokeDocumentShareParams): Promise<boolean> {
     await this.assertCanManageShares(documentId, actorId);
 
-    const removed = await this.documentShareRepository.deleteByDocumentAndUser(
-      documentId,
-      userId,
-    );
+    const removed = await this.unitOfWork.run(async (tx) => {
+      const removed =
+        await this.documentShareRepository.deleteByDocumentAndUser(
+          documentId,
+          userId,
+          tx,
+        );
+
+      await this.auditService.record(
+        {
+          actorId,
+          action: 'document_share.revoked',
+          targetType: 'document',
+          targetId: documentId,
+          metadata: {
+            userId,
+          },
+        },
+        tx,
+      );
+
+      return removed;
+    });
 
     if (removed) await this.accessPolicy.invalidateDocument(documentId);
 

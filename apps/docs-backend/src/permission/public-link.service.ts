@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
+import { AuditService } from '../audit/audit.service';
 import { generateToken, hashToken } from '../auth/token';
 import { ValidationException } from '../common/validation.exception';
+import { UnitOfWork } from '../database/unit-of-work';
 import { AccessPolicyService } from './access-policy.service';
 import type {
   CreatedPublicLinkView,
@@ -20,6 +22,8 @@ export class PublicLinkService {
   constructor(
     private readonly publicLinkRepository: PublicLinkRepository,
     private readonly accessPolicy: AccessPolicyService,
+    private readonly auditService: AuditService,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   public async create({
@@ -39,12 +43,32 @@ export class PublicLinkService {
     }
 
     // Plaintext существует только здесь: в БД кладём хеш, в ответ — токен.
+    // Выпуск ссылки — изменение состава доступа, поэтому событие и строка
+    // ссылки живут в одной транзакции: без записи ссылка не существует.
     const token = generateToken();
-    const row = await this.publicLinkRepository.create({
-      documentId,
-      actorId,
-      expiresAt,
-      tokenHash: hashToken(token),
+    const row = await this.unitOfWork.run(async (tx) => {
+      const created = await this.publicLinkRepository.create(
+        {
+          documentId,
+          actorId,
+          expiresAt,
+          tokenHash: hashToken(token),
+        },
+        tx,
+      );
+
+      await this.auditService.record(
+        {
+          actorId,
+          action: 'public_link.created',
+          targetType: 'document',
+          targetId: documentId,
+          metadata: { linkId: created.id },
+        },
+        tx,
+      );
+
+      return created;
     });
 
     return { ...toPublicLinkView(row), token };
@@ -57,7 +81,30 @@ export class PublicLinkService {
   }: RevokePublicLinkParams): Promise<boolean> {
     await this.assertCanManageLinks(documentId, actorId);
 
-    return this.publicLinkRepository.revoke(documentId, linkId);
+    // Нечего отзывать — нечего и журналировать; иначе отказ audit-записи
+    // превращался бы в ошибку на идемпотентном повторе.
+    return this.unitOfWork.run(async (tx) => {
+      const revoked = await this.publicLinkRepository.revoke(
+        documentId,
+        linkId,
+        tx,
+      );
+
+      if (!revoked) return false;
+
+      await this.auditService.record(
+        {
+          actorId,
+          action: 'public_link.revoked',
+          targetType: 'document',
+          targetId: documentId,
+          metadata: { linkId },
+        },
+        tx,
+      );
+
+      return true;
+    });
   }
 
   public async list({

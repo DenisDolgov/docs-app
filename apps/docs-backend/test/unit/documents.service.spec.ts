@@ -2,6 +2,8 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuditService } from '../../src/audit/audit.service';
+import { UnitOfWork } from '../../src/database/unit-of-work';
 import { DocumentRepository } from '../../src/document/document.repository';
 import { DocumentService } from '../../src/document/document.service';
 import { OrganizationService } from '../../src/organization/organization.service';
@@ -29,6 +31,18 @@ const organizationService = {
 const accessPolicy = {
   assertDocumentAccess: vi.fn(),
   invalidateDocument: vi.fn(),
+};
+
+const auditService = {
+  record: vi.fn(),
+  recordBestEffort: vi.fn(),
+};
+
+// Транзакция в юнит-тестах не открывается: `run` отдаёт тот же сентинел,
+// который сервис передаёт в репозиторий.
+const DB_TX = { tx: true };
+const unitOfWork = {
+  run: vi.fn((work: (tx: unknown) => Promise<unknown>) => work(DB_TX)),
 };
 
 const documentOwnedBy = (createdBy: string) => ({
@@ -61,6 +75,8 @@ describe('DocumentService', () => {
         { provide: DocumentRepository, useValue: documentRepository },
         { provide: OrganizationService, useValue: organizationService },
         { provide: AccessPolicyService, useValue: accessPolicy },
+        { provide: AuditService, useValue: auditService },
+        { provide: UnitOfWork, useValue: unitOfWork },
       ],
     }).compile();
 
@@ -269,7 +285,19 @@ describe('DocumentService', () => {
 
       await service.remove({ actorId: MEMBER_ID, documentId: DOCUMENT_ID });
 
-      expect(documentRepository.remove).toHaveBeenCalledWith(DOCUMENT_ID);
+      expect(documentRepository.remove).toHaveBeenCalledWith(
+        DOCUMENT_ID,
+        DB_TX,
+      );
+      expect(auditService.record).toHaveBeenCalledWith(
+        {
+          actorId: MEMBER_ID,
+          action: 'document.removed',
+          targetType: 'document',
+          targetId: DOCUMENT_ID,
+        },
+        DB_TX,
+      );
       expect(accessPolicy.invalidateDocument).toHaveBeenCalledWith(DOCUMENT_ID);
     });
 

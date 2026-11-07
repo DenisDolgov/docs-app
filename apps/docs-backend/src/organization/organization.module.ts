@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { MailModule } from '../mail/mail.module';
@@ -15,7 +16,7 @@ import { OrganizationInviteService } from './organization-invite.service';
 import { OrganizationMemberRepository } from './organization-member.repository';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, MailModule],
+  imports: [DatabaseModule, AuthModule, AuditModule, MailModule],
   providers: [
     OrganizationRepository,
     OrganizationMemberRepository,

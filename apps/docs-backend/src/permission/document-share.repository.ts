@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 
-import { DATABASE, type Database } from '../database/database.constants';
+import {
+  DATABASE,
+  type Database,
+  type DbExecutor,
+} from '../database/database.constants';
 import * as schema from '../database/schema';
 import type {
   DocumentShareListItem,
@@ -26,13 +30,11 @@ export const toDocumentShareView = (
 export class DocumentShareRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  public async upsert({
-    documentId,
-    userId,
-    role,
-    actorId,
-  }: GrantDocumentShareParams): Promise<DocumentShareView> {
-    const [row] = await this.db
+  public async upsert(
+    { documentId, userId, role, actorId }: GrantDocumentShareParams,
+    db: DbExecutor = this.db,
+  ): Promise<DocumentShareView> {
+    const [row] = await db
       .insert(schema.documentShares)
       .values({ documentId, userId, role, createdBy: actorId })
       .onConflictDoUpdate({
@@ -88,8 +90,9 @@ export class DocumentShareRepository {
   public async deleteByDocumentAndUser(
     documentId: string,
     userId: string,
+    db: DbExecutor = this.db,
   ): Promise<boolean> {
-    const rows = await this.db
+    const rows = await db
       .delete(schema.documentShares)
       .where(
         and(

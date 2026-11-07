@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { AuditService } from '../audit/audit.service';
 import { EmailVerificationPolicy } from '../auth/email-verification-policy';
 import { UserRepository } from '../auth/user.repository';
 import { normalizeEmail } from '../common/utils/email';
@@ -36,6 +37,7 @@ export class OrganizationService {
     private readonly userRepository: UserRepository,
     private readonly emailVerificationPolicy: EmailVerificationPolicy,
     private readonly unitOfWork: UnitOfWork,
+    private readonly auditService: AuditService,
   ) {}
 
   public async create({ userId, name }: CreateOrganizationParams) {
@@ -43,7 +45,7 @@ export class OrganizationService {
 
     // Организация без владельца — битая строка, которую некому починить.
     // Оба insert'а должны стать видимыми вместе или не стать вовсе.
-    return this.unitOfWork.run(async (tx) => {
+    const created = await this.unitOfWork.run(async (tx) => {
       const { id: organizationId, name: organizationName } =
         await this.organizationRepository.create({ name }, tx);
 
@@ -61,6 +63,15 @@ export class OrganizationService {
         name: organizationName,
       };
     });
+
+    await this.auditService.recordBestEffort({
+      actorId: userId,
+      action: 'organization.created',
+      targetType: 'organization',
+      targetId: created.id,
+    });
+
+    return created;
   }
 
   public async findOrganization(organizationId: string) {

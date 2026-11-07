@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { AuditService } from '../audit/audit.service';
+import { UnitOfWork } from '../database/unit-of-work';
 import { OrganizationService } from '../organization/organization.service';
 import { AccessPolicyService } from '../permission/access-policy.service';
 import {
@@ -21,6 +23,8 @@ export class DocumentService {
     private readonly documentRepository: DocumentRepository,
     private readonly organizationService: OrganizationService,
     private readonly accessPolicy: AccessPolicyService,
+    private readonly auditService: AuditService,
+    private readonly unitOfWork: UnitOfWork,
   ) {}
 
   async createInOrganization({
@@ -100,7 +104,26 @@ export class DocumentService {
       required: 'editor',
     });
 
-    const removed = await this.documentRepository.remove(documentId);
+    // Удаление стирает и сам объект, и весь его состав доступа. После коммита
+    // `audit.events` — единственный след, поэтому событие пишется в той же
+    // транзакции: без записи документ не удаляется.
+    const removed = await this.unitOfWork.run(async (tx) => {
+      const deleted = await this.documentRepository.remove(documentId, tx);
+
+      if (!deleted) return false;
+
+      await this.auditService.record(
+        {
+          actorId,
+          action: 'document.removed',
+          targetType: 'document',
+          targetId: documentId,
+        },
+        tx,
+      );
+
+      return true;
+    });
 
     if (!removed) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
 

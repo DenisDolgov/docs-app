@@ -6,6 +6,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuditService } from '../../src/audit/audit.service';
 import { EmailVerificationPolicy } from '../../src/auth/email-verification-policy';
 import { UserRepository } from '../../src/auth/user.repository';
 import { UnitOfWork } from '../../src/database/unit-of-work';
@@ -48,6 +49,10 @@ const unitOfWork = {
   run: vi.fn(async (work: (tx: unknown) => Promise<unknown>) => work({})),
 };
 
+const auditService = {
+  recordBestEffort: vi.fn(),
+};
+
 const actorWithRole = (role: string, actorId = OWNER_ID) => {
   organizationMembersRepository.findByOrgAndUser.mockImplementation(
     async (_organizationId: string, userId: string) => {
@@ -81,6 +86,7 @@ describe('OrganizationsService', () => {
           useValue: emailVerificationPolicy,
         },
         { provide: UnitOfWork, useValue: unitOfWork },
+        { provide: AuditService, useValue: auditService },
       ],
     }).compile();
 

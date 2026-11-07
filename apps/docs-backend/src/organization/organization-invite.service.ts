@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { AuditService } from '../audit/audit.service';
 import { EmailVerificationPolicy } from '../auth/email-verification-policy';
 import { generateToken, hashToken } from '../auth/token';
 import { UserRepository } from '../auth/user.repository';
@@ -73,6 +74,7 @@ export class OrganizationInviteService {
     private readonly emailVerificationPolicy: EmailVerificationPolicy,
     private readonly unitOfWork: UnitOfWork,
     private readonly mailService: MailService,
+    private readonly auditService: AuditService,
   ) {}
 
   // HTTP-вход приглашения: проверка права и подготовка данных для письма.
@@ -134,6 +136,14 @@ export class OrganizationInviteService {
     );
 
     if (!revoked) throw new NotFoundException(INVITE_NOT_FOUND_ERROR);
+
+    await this.auditService.recordBestEffort({
+      actorId,
+      action: 'organization_invite.revoked',
+      targetType: 'organization',
+      targetId: organizationId,
+      metadata: { inviteId },
+    });
 
     return true;
   }
@@ -214,6 +224,14 @@ export class OrganizationInviteService {
       return { ...inviteRecord, token };
     });
 
+    await this.auditService.recordBestEffort({
+      actorId,
+      action: 'organization_invite.issued',
+      targetType: 'organization',
+      targetId: organizationId,
+      metadata: { inviteId: issuedInvite.id, role },
+    });
+
     this.mailService
       .sendOrganizationInvite({
         to: email,
@@ -259,7 +277,7 @@ export class OrganizationInviteService {
       throw new NotFoundException(ORGANIZATION_NOT_FOUND_ERROR);
     }
 
-    return this.unitOfWork.run(async (tx) => {
+    const accepted = await this.unitOfWork.run(async (tx) => {
       const invite = await this.organizationInviteRepository.consume(
         tokenHash,
         tx,
@@ -294,6 +312,16 @@ export class OrganizationInviteService {
         role: invite.role,
       };
     });
+
+    await this.auditService.recordBestEffort({
+      actorId: userId,
+      action: 'organization_invite.accepted',
+      targetType: 'organization',
+      targetId: accepted.organizationId,
+      metadata: { inviteId: pending.id, role: accepted.role },
+    });
+
+    return accepted;
   }
 
   private async assertCanManageInvites(
