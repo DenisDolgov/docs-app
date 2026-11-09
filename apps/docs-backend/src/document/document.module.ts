@@ -8,7 +8,11 @@ import { PermissionModule } from '../permission/permission.module';
 import { DocumentController } from './document.controller';
 import { DocumentRepository } from './document.repository';
 import { DocumentService } from './document.service';
+import { FolderController } from './folder.controller';
+import { FolderRepository } from './folder.repository';
+import { FolderService } from './folder.service';
 import { OrganizationDocumentController } from './organization-document.controller';
+import { OrganizationFolderController } from './organization-folder.controller';
 import { PublicDocumentController } from './public-document.controller';
 
 @Module({
@@ -19,11 +23,18 @@ import { PublicDocumentController } from './public-document.controller';
     PermissionModule,
     AuditModule,
   ],
-  providers: [DocumentRepository, DocumentService],
+  providers: [
+    DocumentRepository,
+    DocumentService,
+    FolderRepository,
+    FolderService,
+  ],
   controllers: [
     DocumentController,
     OrganizationDocumentController,
     PublicDocumentController,
+    OrganizationFolderController,
+    FolderController,
   ],
 })
 export class DocumentModule {}

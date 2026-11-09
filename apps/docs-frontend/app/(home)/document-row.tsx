@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useOrganization } from '@/components/organization-provider';
 import { TableCell, TableRow } from '@/components/ui/table';
 import type { DocumentDto } from '@/lib/api';
+import { DOCUMENT_DRAG_TYPE } from '@/lib/folders';
 
 import { DocumentMenu } from './document-menu';
 
@@ -33,6 +34,11 @@ export const DocumentRow = ({ document, onChanged }: DocumentRowProps) => {
 
   return (
     <TableRow
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData(DOCUMENT_DRAG_TYPE, document.id);
+        event.dataTransfer.effectAllowed = 'move';
+      }}
       onClick={() => handleRowClick(document.id)}
       className="cursor-pointer"
     >

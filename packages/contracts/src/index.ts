@@ -5,6 +5,8 @@ export * from './auth/routes';
 export * from './collab';
 export * from './document';
 export * from './document/routes';
+export * from './folder';
+export * from './folder/routes';
 export * from './http';
 export * from './organization';
 export * from './organization/routes';

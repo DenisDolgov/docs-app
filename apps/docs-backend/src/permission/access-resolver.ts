@@ -3,7 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { OrganizationService } from '../organization/organization.service';
 import { DocumentAccessRepository } from './document-access.repository';
 import { DocumentShareRepository } from './document-share.repository';
-import { hasAccess, mapOrganizationRole } from './permission.constants';
+import { FolderAccessRepository } from './folder-access.repository';
+import { mapOrganizationRole, maxAccessLevel } from './permission.constants';
 import type {
   EffectiveAccessLevel,
   ResolveAccessParams,
@@ -17,6 +18,7 @@ export class AccessResolver {
     private readonly documentAccessRepository: DocumentAccessRepository,
     private readonly organizationService: OrganizationService,
     private readonly documentShareRepository: DocumentShareRepository,
+    private readonly folderAccessRepository: FolderAccessRepository,
   ) {}
 
   public async resolve({
@@ -36,6 +38,18 @@ export class AccessResolver {
     );
     const levelByShare = share?.role ?? null;
 
+    let levelByFolder: EffectiveAccessLevel | null = null;
+
+    if (facts.folderId) {
+      const rolesByFolder =
+        await this.folderAccessRepository.findShareLevelsByFolderChain(
+          facts.folderId,
+          principal.userId,
+        );
+
+      levelByFolder = maxAccessLevel(rolesByFolder);
+    }
+
     let levelByOrganization: EffectiveAccessLevel | null = null;
 
     if (facts.organizationId) {
@@ -49,12 +63,6 @@ export class AccessResolver {
         : null;
     }
 
-    if (levelByOrganization && levelByShare) {
-      return hasAccess(levelByOrganization, levelByShare)
-        ? levelByOrganization
-        : levelByShare;
-    }
-
-    return levelByOrganization ?? levelByShare;
+    return maxAccessLevel([levelByOrganization, levelByShare, levelByFolder]);
   }
 }

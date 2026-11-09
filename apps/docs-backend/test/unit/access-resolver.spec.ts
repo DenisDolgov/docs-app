@@ -5,12 +5,14 @@ import { OrganizationService } from '../../src/organization/organization.service
 import { AccessResolver } from '../../src/permission/access-resolver';
 import { DocumentAccessRepository } from '../../src/permission/document-access.repository';
 import { DocumentShareRepository } from '../../src/permission/document-share.repository';
+import { FolderAccessRepository } from '../../src/permission/folder-access.repository';
 
 const OWNER_ID = '0192f5b0-1c00-7000-8000-000000000001';
 const VIEWER_ID = '0192f5b0-1c00-7000-8000-000000000002';
 const OUTSIDER_ID = '0192f5b0-1c00-7000-8000-000000000003';
 const ORGANIZATION_ID = '0192f5b0-1c00-7000-8000-000000000010';
 const DOCUMENT_ID = '0192f5b0-1c00-7000-8000-000000000020';
+const FOLDER_ID = '0192f5b0-1c00-7000-8000-000000000030';
 
 const documentAccessRepository = {
   findDocumentFacts: vi.fn(),
@@ -24,14 +26,26 @@ const documentShareRepository = {
   findByDocumentAndUser: vi.fn(),
 };
 
+const folderAccessRepository = {
+  findShareLevelsByFolderChain: vi.fn(),
+};
+
 const organizationalDocument = {
   organizationId: ORGANIZATION_ID,
   createdBy: OWNER_ID,
+  folderId: null as string | null,
 };
 
 const personalDocument = {
   organizationId: null,
   createdBy: OWNER_ID,
+  folderId: null as string | null,
+};
+
+const documentInFolder = {
+  organizationId: ORGANIZATION_ID,
+  createdBy: OWNER_ID,
+  folderId: FOLDER_ID,
 };
 
 const organizationRole = (role: string | null) => {
@@ -44,6 +58,10 @@ const shareRole = (role: string | null) => {
       ? { id: 'share-1', documentId: DOCUMENT_ID, userId: VIEWER_ID, role }
       : null,
   );
+};
+
+const folderRole = (...levels: string[]) => {
+  folderAccessRepository.findShareLevelsByFolderChain.mockResolvedValue(levels);
 };
 
 // Матрица эффективного права: источники складываются по максимуму, а не по
@@ -59,6 +77,7 @@ describe('AccessResolver (unit)', () => {
 
     organizationRole(null);
     shareRole(null);
+    folderRole();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -71,6 +90,10 @@ describe('AccessResolver (unit)', () => {
         {
           provide: DocumentShareRepository,
           useValue: documentShareRepository,
+        },
+        {
+          provide: FolderAccessRepository,
+          useValue: folderAccessRepository,
         },
       ],
     }).compile();
@@ -257,6 +280,66 @@ describe('AccessResolver (unit)', () => {
       await resolve();
 
       expect(organizationService.getMemberRole).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('наследование от папки', () => {
+    it('viewer на папке даёт viewer документа в ней', async () => {
+      documentAccessRepository.findDocumentFacts.mockResolvedValue(
+        documentInFolder,
+      );
+      folderRole('viewer');
+
+      await expect(resolve()).resolves.toBe('viewer');
+    });
+
+    it('право берётся по максимуму из цепочки предков', async () => {
+      documentAccessRepository.findDocumentFacts.mockResolvedValue(
+        documentInFolder,
+      );
+      folderRole('viewer', 'editor');
+
+      await expect(resolve()).resolves.toBe('editor');
+    });
+
+    it('прямой share и право папки складываются по максимуму', async () => {
+      documentAccessRepository.findDocumentFacts.mockResolvedValue(
+        documentInFolder,
+      );
+      shareRole('viewer');
+      folderRole('editor');
+
+      await expect(resolve()).resolves.toBe('editor');
+    });
+
+    it('роль организации и право папки складываются по максимуму', async () => {
+      documentAccessRepository.findDocumentFacts.mockResolvedValue(
+        documentInFolder,
+      );
+      organizationRole('member');
+      folderRole('viewer');
+
+      await expect(resolve()).resolves.toBe('editor');
+    });
+
+    it('папка без share не даёт права', async () => {
+      documentAccessRepository.findDocumentFacts.mockResolvedValue(
+        documentInFolder,
+      );
+
+      await expect(resolve()).resolves.toBeNull();
+    });
+
+    it('личный документ не спрашивает цепочку папок', async () => {
+      documentAccessRepository.findDocumentFacts.mockResolvedValue(
+        personalDocument,
+      );
+
+      await resolve();
+
+      expect(
+        folderAccessRepository.findShareLevelsByFolderChain,
+      ).not.toHaveBeenCalled();
     });
   });
 });

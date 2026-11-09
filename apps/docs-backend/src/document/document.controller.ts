@@ -79,12 +79,13 @@ export class DocumentController {
     @Param(documentRoute.param, { schema: documentIdSchema })
     documentId: string,
     @Body({ schema: updateDocumentDto })
-    { title }: z.infer<typeof updateDocumentDto>,
+    { title, folderId }: z.infer<typeof updateDocumentDto>,
   ) {
     return this.documentService.update({
       documentId,
       actorId: user.sub,
       title,
+      folderId,
     });
   }
 

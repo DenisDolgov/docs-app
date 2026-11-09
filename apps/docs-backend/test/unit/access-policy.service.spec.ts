@@ -2,9 +2,11 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { OrganizationService } from '../../src/organization/organization.service';
 import { AccessPolicyService } from '../../src/permission/access-policy.service';
 import { AccessResolver } from '../../src/permission/access-resolver';
 import { DocumentAccessCache } from '../../src/permission/document-access-cache';
+import { FolderAccessRepository } from '../../src/permission/folder-access.repository';
 
 const USER_ID = '0192f5b0-1c00-7000-8000-000000000001';
 const DOCUMENT_ID = '0192f5b0-1c00-7000-8000-000000000020';
@@ -17,6 +19,16 @@ const cache = {
   get: vi.fn(),
   set: vi.fn(),
   invalidate: vi.fn(),
+};
+
+const folderAccessRepository = {
+  findFolderFacts: vi.fn(),
+  findShareLevelsByFolderChain: vi.fn(),
+  findDescendantDocumentIds: vi.fn(),
+};
+
+const organizationService = {
+  getMemberRole: vi.fn(),
 };
 
 describe('AccessPolicyService (unit)', () => {
@@ -34,6 +46,8 @@ describe('AccessPolicyService (unit)', () => {
         AccessPolicyService,
         { provide: AccessResolver, useValue: resolver },
         { provide: DocumentAccessCache, useValue: cache },
+        { provide: FolderAccessRepository, useValue: folderAccessRepository },
+        { provide: OrganizationService, useValue: organizationService },
       ],
     }).compile();
 

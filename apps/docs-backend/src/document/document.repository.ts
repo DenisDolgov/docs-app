@@ -7,13 +7,14 @@ import {
   type DbExecutor,
 } from '../database/database.constants';
 import * as schema from '../database/schema';
-import { DocumentView } from './document.models';
+import type { DocumentChanges, DocumentView } from './document.models';
 
 type DocumentRow = typeof schema.documents.$inferSelect;
 
 const toDocumentView = (row: DocumentRow): DocumentView => ({
   id: row.id,
   organizationId: row.organizationId,
+  folderId: row.folderId,
   createdBy: row.createdBy,
   title: row.title,
   createdAt: row.createdAt.toISOString(),
@@ -26,8 +27,9 @@ export class DocumentRepository {
 
   public async create(
     data: typeof schema.documents.$inferInsert,
+    db: DbExecutor = this.db,
   ): Promise<DocumentView> {
-    const [document] = await this.db
+    const [document] = await db
       .insert(schema.documents)
       .values(data)
       .returning();
@@ -47,7 +49,8 @@ export class DocumentRepository {
   }
 
   // Все доступные пользователю документы: личные (владелец), организационные
-  // (членство в организации документа) и выданные напрямую share'ом
+  // (членство в организации документа), выданные напрямую share'ом и
+  // унаследованные от папки в цепочке предков.
   public async listAccessible(userId: string): Promise<DocumentView[]> {
     const documents = await this.db
       .selectDistinct(getColumns(schema.documents))
@@ -68,6 +71,22 @@ export class DocumentRepository {
           eq(schema.documents.createdBy, userId),
           eq(schema.organizationMembers.userId, userId),
           eq(schema.documentShares.userId, userId),
+          // Share на папку или её предка открывает документ из поддерева.
+          sql`exists (
+            with recursive chain as (
+              select id, parent_id
+              from document.folders
+              where id = ${schema.documents.folderId}
+              union all
+              select f.id, f.parent_id
+              from document.folders f
+              join chain c on f.id = c.parent_id
+            )
+            select 1
+            from chain c
+            join permission.folder_shares fs on fs.folder_id = c.id
+            where fs.user_id = ${userId}
+          )`,
         ),
       )
       .orderBy(desc(schema.documents.updatedAt));
@@ -96,14 +115,18 @@ export class DocumentRepository {
 
   public async update(
     documentId: string,
-    title: string,
+    changes: DocumentChanges,
+    db: DbExecutor = this.db,
   ): Promise<DocumentView | null> {
-    const [document] = await this.db
+    const set = {
+      ...(changes.title === undefined ? {} : { title: changes.title }),
+      ...(changes.folderId === undefined ? {} : { folderId: changes.folderId }),
+      updatedAt: sql`NOW()`,
+    };
+
+    const [document] = await db
       .update(schema.documents)
-      .set({
-        title,
-        updatedAt: sql`NOW()`,
-      })
+      .set(set)
       .where(eq(schema.documents.id, documentId))
       .returning();
 

@@ -38,6 +38,14 @@
       "types": "./dist/document/routes.d.ts",
       "default": "./dist/document/routes.js"
     },
+    "./folder": {
+      "types": "./dist/folder/index.d.ts",
+      "default": "./dist/folder/index.js"
+    },
+    "./folder/routes": {
+      "types": "./dist/folder/routes.d.ts",
+      "default": "./dist/folder/routes.js"
+    },
     "./collab": {
       "types": "./dist/collab/index.d.ts",
       "default": "./dist/collab/index.js"

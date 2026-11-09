@@ -40,6 +40,24 @@ export interface CacheDocumentAccessKey {
 export interface DocumentAccessFacts {
   organizationId: string | null;
   createdBy: string;
+  // Путь документа в дереве — ещё один источник права. `null` — документ вне
+  // папок.
+  folderId: string | null;
+}
+
+// Всё, что нужно политике про папку: организация задаёт роль, автор — owner.
+export interface FolderAccessFacts {
+  organizationId: string;
+  createdBy: string;
+}
+
+export interface FolderAccessParams {
+  folderId: string;
+  principal: AccessPrincipal;
+}
+
+export interface AssertFolderAccessParams extends FolderAccessParams {
+  required: EffectiveAccessLevel;
 }
 
 export interface DocumentShareView {
@@ -83,6 +101,44 @@ export interface RevokeDocumentShareParams {
 
 export interface ListDocumentSharesParams {
   documentId: string;
+  actorId: string;
+}
+
+export interface FolderShareView {
+  id: string;
+  folderId: string;
+  userId: string;
+  role: DocumentAccessLevel;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface FolderShareListItem extends FolderShareView {
+  email: string;
+}
+
+export interface GrantFolderShareParams {
+  folderId: string;
+  userId: string;
+  role: DocumentAccessLevel;
+  actorId: string;
+}
+
+export interface GrantFolderShareByEmailParams {
+  folderId: string;
+  email: string;
+  role: DocumentAccessLevel;
+  actorId: string;
+}
+
+export interface RevokeFolderShareParams {
+  folderId: string;
+  userId: string;
+  actorId: string;
+}
+
+export interface ListFolderSharesParams {
+  folderId: string;
   actorId: string;
 }
 

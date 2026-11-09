@@ -85,13 +85,14 @@ describe('documents (integration)', () => {
   it('создаёт таблицу documents.documents с нужными колонками', async () => {
     const result = await db.execute<{ column_name: string }>(
       sql`select column_name from information_schema.columns
-where table_schema = 'documents' and table_name = 'documents'
+where table_schema = 'document' and table_name = 'documents'
 order by column_name`,
     );
 
     expect(result.rows.map((row) => row.column_name)).toEqual([
       'created_at',
       'created_by',
+      'folder_id',
       'id',
       'organization_id',
       'title',
@@ -102,7 +103,7 @@ order by column_name`,
   it('делает organization_id необязательной колонкой', async () => {
     const result = await db.execute<{ is_nullable: string }>(
       sql`select is_nullable from information_schema.columns
-where table_schema = 'documents' and table_name = 'documents'
+where table_schema = 'document' and table_name = 'documents'
   and column_name = 'organization_id'`,
     );
 
@@ -112,7 +113,7 @@ where table_schema = 'documents' and table_name = 'documents'
   it('индексирует documents по organization_id', async () => {
     const result = await db.execute<{ count: string }>(
       sql`select count(*)::text as count from pg_indexes
-where schemaname = 'documents' and tablename = 'documents'
+where schemaname = 'document' and tablename = 'documents'
   and indexdef ilike '%organization_id%'`,
     );
 
@@ -123,8 +124,12 @@ where schemaname = 'documents' and tablename = 'documents'
     const result = await db.execute<{ count: string }>(
       sql`select count(*)::text as count
 from information_schema.table_constraints tc
-where tc.table_schema = 'documents' and tc.table_name = 'documents'
-  and tc.constraint_type = 'FOREIGN KEY'`,
+join information_schema.constraint_column_usage ccu
+  on ccu.constraint_name = tc.constraint_name
+  and ccu.constraint_schema = tc.constraint_schema
+where tc.table_schema = 'document' and tc.table_name = 'documents'
+  and tc.constraint_type = 'FOREIGN KEY'
+  and ccu.table_schema <> 'document'`,
     );
 
     expect(result.rows[0]?.count).toBe('0');
@@ -271,7 +276,7 @@ values (${personal.id}, ${viewer.id}, 'viewer', ${owner.id})`,
       documentId: document.id,
     });
     const result = await db.execute<{ count: string }>(
-      sql`select count(*)::text as count from documents.documents
+      sql`select count(*)::text as count from document.documents
 where id = ${document.id}`,
     );
     expect(result.rows[0]?.count).toBe('0');

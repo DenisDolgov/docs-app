@@ -81,7 +81,7 @@ describe('audit + permission changes (integration)', () => {
 
   const documentExists = async (documentId: string) => {
     const result = await db.execute<{ count: string }>(
-      sql`select count(*)::text as count from documents.documents where id = ${documentId}`,
+      sql`select count(*)::text as count from document.documents where id = ${documentId}`,
     );
 
     return Number(result.rows[0]?.count ?? 0) === 1;

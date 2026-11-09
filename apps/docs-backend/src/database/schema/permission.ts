@@ -36,6 +36,25 @@ export const documentShares = permissionSchema.table(
   ],
 );
 
+// Доступ к папке наследуется вниз по дереву: право считается по максимуму
+// среди share'ов папки и её предков. Уникальность пары — как у документов:
+// повторный grant меняет роль, а не добавляет строку.
+export const folderShares = permissionSchema.table(
+  'folder_shares',
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    folderId: uuid().notNull(),
+    userId: uuid().notNull(),
+    role: documentShareRoleEnum().notNull(),
+    createdBy: uuid().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique('folder_share_unique').on(table.folderId, table.userId),
+    index('folder_share_user_id_idx').on(table.userId),
+  ],
+);
+
 // Публичная ссылка — capability: доступ получает любой, у кого токен. Поэтому
 // в БД только хеш. `role` — задел: в v1.0 ссылка всегда даёт чтение, домен
 // уровень из строки не читает (см. `PublicLinkResolver`). Строка не удаляется

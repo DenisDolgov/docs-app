@@ -4,6 +4,7 @@ import { AuditService } from '../audit/audit.service';
 import { UnitOfWork } from '../database/unit-of-work';
 import { OrganizationService } from '../organization/organization.service';
 import { AccessPolicyService } from '../permission/access-policy.service';
+import type { DocumentChanges } from './document.models';
 import {
   CreateDocumentParams,
   CreatePersonalDocumentParams,
@@ -16,6 +17,7 @@ import {
 } from './document.models';
 import { DocumentRepository } from './document.repository';
 import { DOCUMENT_NOT_FOUND_ERROR } from './errors';
+import { FolderService } from './folder.service';
 
 @Injectable()
 export class DocumentService {
@@ -25,6 +27,7 @@ export class DocumentService {
     private readonly accessPolicy: AccessPolicyService,
     private readonly auditService: AuditService,
     private readonly unitOfWork: UnitOfWork,
+    private readonly folderService: FolderService,
   ) {}
 
   async createInOrganization({
@@ -83,18 +86,44 @@ export class DocumentService {
     return document;
   }
 
-  async update({ actorId, documentId, title }: UpdateDocumentParams) {
+  async update({ actorId, documentId, title, folderId }: UpdateDocumentParams) {
     await this.accessPolicy.assertDocumentAccess({
       documentId,
       principal: { userId: actorId },
       required: 'editor',
     });
 
-    const document = await this.documentRepository.update(documentId, title);
+    // Перенос — это изменение пути, а значит и эффективного права. Папка
+    // обязана быть из той же организации, что и документ.
+    if (folderId !== undefined && folderId !== null) {
+      const document = await this.documentRepository.findById(documentId);
 
-    if (!document) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
+      if (!document) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
 
-    return document;
+      await this.folderService.assertFolderForDocument(
+        folderId,
+        document.organizationId,
+      );
+    }
+
+    const changes: DocumentChanges = {};
+
+    if (title !== undefined) changes.title = title;
+    if (folderId !== undefined) changes.folderId = folderId;
+
+    const updated = await this.documentRepository.update(documentId, changes);
+
+    if (!updated) throw new NotFoundException(DOCUMENT_NOT_FOUND_ERROR);
+
+    await this.accessPolicy.invalidateDocument(documentId);
+
+    // Соседи по новой папке не меняются, но `invalidateFolder` покрывает и
+    // случай, когда документ переехал в поддерево с иным унаследованным правом.
+    if (folderId !== undefined && folderId !== null) {
+      await this.accessPolicy.invalidateFolder(folderId);
+    }
+
+    return updated;
   }
 
   async remove({ actorId, documentId }: RemoveDocumentParams) {

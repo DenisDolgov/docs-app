@@ -14,12 +14,23 @@ export const auditActions = [
   'document.removed',
   'document_share.granted',
   'document_share.revoked',
+  'folder.created',
+  'folder.renamed',
+  'folder.moved',
+  'folder.removed',
+  'folder_share.granted',
+  'folder_share.revoked',
   'public_link.created',
   'public_link.revoked',
 ] as const;
 
 export type AuditAction = (typeof auditActions)[number];
 
-export const auditTargetTypes = ['user', 'organization', 'document'] as const;
+export const auditTargetTypes = [
+  'user',
+  'organization',
+  'document',
+  'folder',
+] as const;
 
 export type AuditTargetType = (typeof auditTargetTypes)[number];

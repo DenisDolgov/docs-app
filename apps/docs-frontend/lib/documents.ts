@@ -54,6 +54,16 @@ export const renameDocument = (
     body: JSON.stringify({ title }),
   });
 
+// Перенос в папку: `folderId: null` вынимает документ из дерева.
+export const moveDocumentToFolder = (
+  documentId: string,
+  folderId: string | null,
+): Promise<DocumentDto> =>
+  apiJson<DocumentDto>(documentPaths.byId(documentId), {
+    method: 'PATCH',
+    body: JSON.stringify({ folderId }),
+  });
+
 export const removeDocument = (documentId: string): Promise<void> =>
   apiJson<void>(documentPaths.byId(documentId), { method: 'DELETE' });
 

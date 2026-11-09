@@ -4,6 +4,7 @@ import {
   organizationDocumentRoute,
   publicDocumentRoute,
 } from '@docs-app/contracts/document/routes';
+import { folderRoute } from '@docs-app/contracts/folder/routes';
 import {
   inviteRoute,
   organizationRoute,
@@ -36,6 +37,19 @@ describe('контракт маршрутов', () => {
     expect(organizationDocumentRoute.paths.collection('o1')).toBe(
       '/organizations/o1/documents',
     );
+  });
+
+  it('пути папок выведены из base и параметров', () => {
+    expect(folderRoute.organizationBase).toBe(
+      `organizations/:${folderRoute.organizationParam}/${folderRoute.base}`,
+    );
+    expect(folderRoute.byIdPattern).toBe(`/:${folderRoute.param}`);
+    expect(folderRoute.paths.collection('o1')).toBe(
+      '/organizations/o1/folders',
+    );
+    expect(folderRoute.paths.byId('f1')).toBe('/folders/f1');
+    expect(folderRoute.paths.shares('f1')).toBe('/folders/f1/shares');
+    expect(folderRoute.paths.share('f1', 'u1')).toBe('/folders/f1/shares/u1');
   });
 
   it('пути участников организации выведены из base и параметра', () => {

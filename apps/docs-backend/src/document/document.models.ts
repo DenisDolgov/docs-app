@@ -3,6 +3,7 @@ import { ActorInOrganization } from '../organization/organization.models';
 export interface DocumentView {
   id: string;
   organizationId: string | null;
+  folderId: string | null;
   createdBy: string;
   title: string;
   createdAt: string;
@@ -35,7 +36,9 @@ export interface GetDocumentParams {
 }
 
 export interface UpdateDocumentParams extends GetDocumentParams {
-  title: string;
+  title?: string;
+  // `null` — вынести из папки.
+  folderId?: string | null;
 }
 
 export type RemoveDocumentParams = GetDocumentParams;
@@ -43,4 +46,9 @@ export type RemoveDocumentParams = GetDocumentParams;
 // Публичное чтение: аккаунта нет, право уже доказано токеном ссылки.
 export interface GetPublicDocumentParams {
   documentId: string;
+}
+
+export interface DocumentChanges {
+  title?: string;
+  folderId?: string | null;
 }

@@ -17,6 +17,25 @@ export const hasAccess = (
   required: EffectiveAccessLevel,
 ): boolean => level !== null && accessRank[level] >= accessRank[required];
 
+// Источники права складываются по максимуму: роль в организации, прямой share
+// и share'ы папки-предка — независимые источники, и слабейший не должен
+// понижать сильнейший. `null` — источника нет.
+export const maxAccessLevel = (
+  levels: readonly (EffectiveAccessLevel | null)[],
+): EffectiveAccessLevel | null => {
+  let highest: EffectiveAccessLevel | null = null;
+
+  for (const level of levels) {
+    if (level === null) continue;
+
+    if (highest === null || accessRank[level] > accessRank[highest]) {
+      highest = level;
+    }
+  }
+
+  return highest;
+};
+
 // Роль организации и уровень share — разные шкалы. Роль `member` даёт право
 // писать документы организации, но не управлять самой организацией.
 const organizationRoleAccess: Record<OrganizationRole, EffectiveAccessLevel> = {

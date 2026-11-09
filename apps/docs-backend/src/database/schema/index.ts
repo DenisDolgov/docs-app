@@ -2,13 +2,13 @@ import { defineRelations } from 'drizzle-orm';
 
 import { auditEvents } from './audit';
 import { documentSnapshots, documentUpdates } from './collab';
-import { documents } from './documents';
+import { documents, folders } from './documents';
 import {
   organizationInvites,
   organizationMembers,
   organizations,
 } from './organizations';
-import { documentShares, publicLinks } from './permission';
+import { documentShares, folderShares, publicLinks } from './permission';
 import {
   emailVerificationTokens,
   passwordResetTokens,
@@ -18,7 +18,7 @@ import {
 
 export { auditEvents, auditSchema } from './audit';
 export { collabSchema, documentSnapshots, documentUpdates } from './collab';
-export { documents, documentsSchema } from './documents';
+export { documentSchema, documents, folders } from './documents';
 export {
   organizationInvites,
   organizationMembers,
@@ -29,6 +29,7 @@ export {
 export {
   documentShareRoleEnum,
   documentShares,
+  folderShares,
   permissionSchema,
   publicLinks,
 } from './permission';
@@ -45,6 +46,7 @@ export {
 export const relations = defineRelations(
   {
     documents,
+    folders,
     users,
     refreshTokens,
     emailVerificationTokens,
@@ -54,6 +56,7 @@ export const relations = defineRelations(
     documentUpdates,
     documentSnapshots,
     documentShares,
+    folderShares,
     organizationInvites,
     publicLinks,
     auditEvents,

@@ -28,12 +28,13 @@ describe('database', () => {
   it('создает таблицу documents с нужными колонками', async () => {
     const result = await db.execute<{ column_name: string }>(
       sql`select column_name from information_schema.columns
-where table_schema = 'documents' and table_name = 'documents' order by column_name`,
+where table_schema = 'document' and table_name = 'documents' order by column_name`,
     );
 
     expect(result.rows.map((row) => row.column_name)).toEqual([
       'created_at',
       'created_by',
+      'folder_id',
       'id',
       'organization_id',
       'title',

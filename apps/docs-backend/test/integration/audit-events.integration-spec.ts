@@ -160,7 +160,7 @@ describe('audit events (integration)', () => {
       sql`select action from audit.events where target_type = 'document' and target_id = ${document.id} and action = 'document.removed'`,
     );
     const alive = await db.execute<{ count: string }>(
-      sql`select count(*)::text as count from documents.documents where id = ${document.id}`,
+      sql`select count(*)::text as count from document.documents where id = ${document.id}`,
     );
 
     expect(events.rows.map((row) => row.action)).toEqual(['document.removed']);

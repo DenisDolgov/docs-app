@@ -6,6 +6,7 @@ import { AuditService } from '../../src/audit/audit.service';
 import { UnitOfWork } from '../../src/database/unit-of-work';
 import { DocumentRepository } from '../../src/document/document.repository';
 import { DocumentService } from '../../src/document/document.service';
+import { FolderService } from '../../src/document/folder.service';
 import { OrganizationService } from '../../src/organization/organization.service';
 import { AccessPolicyService } from '../../src/permission/access-policy.service';
 
@@ -31,11 +32,16 @@ const organizationService = {
 const accessPolicy = {
   assertDocumentAccess: vi.fn(),
   invalidateDocument: vi.fn(),
+  invalidateFolder: vi.fn(),
 };
 
 const auditService = {
   record: vi.fn(),
   recordBestEffort: vi.fn(),
+};
+
+const folderService = {
+  assertFolderForDocument: vi.fn(),
 };
 
 // Транзакция в юнит-тестах не открывается: `run` отдаёт тот же сентинел,
@@ -48,6 +54,7 @@ const unitOfWork = {
 const documentOwnedBy = (createdBy: string) => ({
   id: DOCUMENT_ID,
   organizationId: ORGANIZATION_ID as string | null,
+  folderId: null as string | null,
   title: 'Заметки',
   createdBy,
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -77,6 +84,7 @@ describe('DocumentService', () => {
         { provide: AccessPolicyService, useValue: accessPolicy },
         { provide: AuditService, useValue: auditService },
         { provide: UnitOfWork, useValue: unitOfWork },
+        { provide: FolderService, useValue: folderService },
       ],
     }).compile();
 
@@ -243,10 +251,9 @@ describe('DocumentService', () => {
       });
 
       expect(updated.title).toBe('Новое');
-      expect(documentRepository.update).toHaveBeenCalledWith(
-        DOCUMENT_ID,
-        'Новое',
-      );
+      expect(documentRepository.update).toHaveBeenCalledWith(DOCUMENT_ID, {
+        title: 'Новое',
+      });
     });
 
     it('отвечает 403 viewer-у и не пишет в БД', async () => {
@@ -275,6 +282,38 @@ describe('DocumentService', () => {
           title: 'Новое',
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('переносит документ в папку и инвалидирует кэш документа и папки', async () => {
+      const folderId = '0192f5b0-1c00-7000-8000-000000000099';
+
+      requirePermission('editor');
+      documentRepository.findById.mockResolvedValue(documentOwnedBy(MEMBER_ID));
+      folderService.assertFolderForDocument.mockResolvedValue({
+        id: folderId,
+        organizationId: ORGANIZATION_ID,
+      });
+      documentRepository.update.mockResolvedValue({
+        ...documentOwnedBy(MEMBER_ID),
+        folderId,
+      });
+
+      const updated = await service.update({
+        actorId: MEMBER_ID,
+        documentId: DOCUMENT_ID,
+        folderId,
+      });
+
+      expect(folderService.assertFolderForDocument).toHaveBeenCalledWith(
+        folderId,
+        ORGANIZATION_ID,
+      );
+      expect(documentRepository.update).toHaveBeenCalledWith(DOCUMENT_ID, {
+        folderId,
+      });
+      expect(updated.folderId).toBe(folderId);
+      expect(accessPolicy.invalidateDocument).toHaveBeenCalledWith(DOCUMENT_ID);
+      expect(accessPolicy.invalidateFolder).toHaveBeenCalledWith(folderId);
     });
   });
 

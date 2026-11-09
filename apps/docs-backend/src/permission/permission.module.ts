@@ -12,6 +12,10 @@ import { DocumentAccessCache } from './document-access-cache';
 import { DocumentShareController } from './document-share.controller';
 import { DocumentShareRepository } from './document-share.repository';
 import { DocumentShareService } from './document-share.service';
+import { FolderAccessRepository } from './folder-access.repository';
+import { FolderShareController } from './folder-share.controller';
+import { FolderShareRepository } from './folder-share.repository';
+import { FolderShareService } from './folder-share.service';
 import { PermissionGuard } from './permission.guard';
 import { PublicLinkRepository } from './public-link.repository';
 import { PublicLinkResolver } from './public-link.resolver';
@@ -28,16 +32,19 @@ import { PublicLinkService } from './public-link.service';
   providers: [
     DocumentAccessRepository,
     DocumentShareRepository,
+    FolderAccessRepository,
+    FolderShareRepository,
     PublicLinkRepository,
     AccessResolver,
     DocumentAccessCache,
     AccessPolicyService,
     DocumentShareService,
+    FolderShareService,
     PublicLinkService,
     PublicLinkResolver,
     PermissionGuard,
   ],
-  controllers: [DocumentShareController],
+  controllers: [DocumentShareController, FolderShareController],
   exports: [AccessPolicyService, DocumentShareService, PublicLinkResolver],
 })
 export class PermissionModule {}

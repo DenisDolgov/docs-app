@@ -83,7 +83,7 @@ describe('audit append-only (integration)', () => {
     const actorId = randomUUID();
 
     await db.execute(
-      sql`insert into documents.documents (id, title, created_by) values (${documentId}, 'Временный', ${actorId})`,
+      sql`insert into document.documents (id, title, created_by) values (${documentId}, 'Временный', ${actorId})`,
     );
 
     await repository.insert({
@@ -94,7 +94,7 @@ describe('audit append-only (integration)', () => {
     });
 
     await db.execute(
-      sql`delete from documents.documents where id = ${documentId}`,
+      sql`delete from document.documents where id = ${documentId}`,
     );
 
     const result = await db.execute<{ count: string }>(

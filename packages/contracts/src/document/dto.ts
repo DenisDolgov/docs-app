@@ -6,9 +6,17 @@ export const createDocumentDto = z.object({
   title: z.string().min(1),
 });
 
-export const updateDocumentDto = z.object({
-  title: z.string().min(1),
-});
+// PATCH — частичное обновление: переименование и/или перенос в папку.
+// `folderId: null` выносит документ из папки.
+export const updateDocumentDto = z
+  .object({
+    title: z.string().min(1).optional(),
+    folderId: z.uuidv7().nullable().optional(),
+  })
+  .refine(
+    (value) => value.title !== undefined || value.folderId !== undefined,
+    { message: 'Нужно передать title или folderId' },
+  );
 
 // Path-параметр: без валидации невалидный uuid уходит в Postgres текстом и
 // даёт 500 (22P02) вместо 400.
@@ -17,6 +25,7 @@ export const documentIdSchema = z.uuidv7();
 export const documentResponseDto = z.object({
   id: z.uuidv7(),
   organizationId: z.uuidv7().nullable(),
+  folderId: z.uuidv7().nullable(),
   createdBy: z.uuidv7(),
   title: z.string(),
   createdAt: z.iso.datetime(),

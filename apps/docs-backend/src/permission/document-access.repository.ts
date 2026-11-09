@@ -19,6 +19,7 @@ export class DocumentAccessRepository {
       .select({
         organizationId: schema.documents.organizationId,
         createdBy: schema.documents.createdBy,
+        folderId: schema.documents.folderId,
       })
       .from(schema.documents)
       .where(eq(schema.documents.id, documentId))

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const documentBody = {
   id: '11111111-1111-7111-8111-111111111111',
   organizationId: '22222222-2222-7222-8222-222222222222',
+  folderId: null,
   createdBy: '33333333-3333-7333-8333-333333333333',
   title: 'Заметки',
   createdAt: '2026-01-02T03:04:05.000Z',
