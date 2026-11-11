@@ -8,8 +8,9 @@ import * as Y from 'yjs';
 import {
   COLLAB_FLUSH_INTERVAL,
   COLLAB_HYDRATION_ORIGIN,
+  COLLAB_RESTORE_ORIGIN,
 } from './collab.constants';
-import { CollabConnection } from './collab.models';
+import { CollabConnection, RoomVersionSnapshot } from './collab.models';
 import { encodeAwarenessMessage } from './collab.protocol';
 import { CollabRepository } from './collab.repository';
 
@@ -29,6 +30,9 @@ export class CollabRoom {
   private pending: Uint8Array[] = [];
   private flushTimer?: NodeJS.Timeout;
   private disposed = false;
+  // Апдейтов накопилось с момента последней записанной версии. Журнал для этого
+  // не годится: компакция удаляет его строки.
+  private versionUpdates = 0;
 
   constructor(
     readonly documentId: string,
@@ -65,6 +69,7 @@ export class CollabRoom {
   private onDocUpdate(update: Uint8Array, origin: unknown) {
     if (origin === COLLAB_HYDRATION_ORIGIN) return;
 
+    this.versionUpdates += 1;
     this.broadcast(update, origin);
     this.queue(update);
   }
@@ -190,19 +195,49 @@ export class CollabRoom {
     return this.flushChain;
   }
 
-  async compact(): Promise<void> {
+  async compact(): Promise<RoomVersionSnapshot | null> {
     await this.flush();
 
     // граница — последний записанный апдейт: до него удаляем после снэпшота
     const boundary = await this.repository.getLastUpdate(this.documentId);
 
-    if (!boundary) return;
+    if (!boundary) return null;
 
     // TODO: между flush и encodeStateAsUpdate может прийти новый апдейт —
     // снэпшот и содержимое document_updates на этот момент не гарантированно равны
     const snapshot = Y.encodeStateAsUpdate(this.doc);
 
     await this.repository.compact(this.documentId, snapshot, boundary.id);
+
+    return { snapshot, updateId: boundary.id };
+  }
+
+  // Снапшот состояния и watermark журнала на один момент. Порядок важен:
+  // сначала фиксируем границу журнала, потом снимаем состояние — тогда снэпшот
+  // содержит как минимум всё, что покрыто watermark'ом.
+  async captureVersion(): Promise<{
+    snapshot: Uint8Array;
+    updateId: number | null;
+  }> {
+    await this.flush();
+
+    const boundary = await this.repository.getLastUpdate(this.documentId);
+    const snapshot = Y.encodeStateAsUpdate(this.doc);
+
+    return { snapshot, updateId: boundary?.id ?? null };
+  }
+
+  // Апдейт версии — обычное изменение документа: уходит клиентам и в журнал.
+  applyVersionUpdate(update: Uint8Array): void {
+    Y.applyUpdate(this.doc, update, COLLAB_RESTORE_ORIGIN);
+  }
+
+  get updatesSinceCheckpoint(): number {
+    return this.versionUpdates;
+  }
+
+  markVersionWritten(): void {
+    this.versionUpdates = 0;
   }
 
   async dispose(): Promise<void> {

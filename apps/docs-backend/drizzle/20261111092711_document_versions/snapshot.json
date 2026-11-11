@@ -1,0 +1,264 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "c6ebf4ef-f881-40a1-93e5-b807fe85a11c",
+  "prevIds": [
+    "a249960c-0ccf-4a18-bc9c-61744ec6de31"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "document_version_kind"
+      ],
+      "writes": [
+        "s|enum|public.document_version_kind",
+        "n|enum|public.document_version_kind",
+        "e|enum|public.document_version_kind",
+        "n|type|public.document_version_kind"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "collab",
+        "document_versions"
+      ],
+      "writes": [
+        "s|tbl|collab.document_versions",
+        "n|tbl|collab.document_versions",
+        "e|tbl|collab.document_versions",
+        "n|rel|collab.document_versions",
+        "n|type|collab.document_versions",
+        "n|rel|collab.document_versions_pkey"
+      ],
+      "reads": [
+        "n|sch|collab",
+        "n|enum|public.document_version_kind"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "collab",
+        "document_versions",
+        "document_versions_document_id_created_at_idx"
+      ],
+      "writes": [
+        "s|idx|collab.document_versions_document_id_created_at_idx",
+        "n|idx|collab.document_versions_document_id_created_at_idx",
+        "e|idx|collab.document_versions_document_id_created_at_idx",
+        "n|rel|collab.document_versions_document_id_created_at_idx"
+      ],
+      "reads": [
+        "n|tbl|collab.document_versions",
+        "n|sch|collab",
+        "n|col|collab.document_versions.document_id",
+        "n|col|collab.document_versions.created_at"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "name": "document_versions",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "document_version_kind",
+        "values": [
+          "checkpoint",
+          "named"
+        ],
+        "entityType": "enums"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "uuidv7()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "document_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "kind",
+        "type": "document_version_kind",
+        "typeSchema": "public",
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "snapshot",
+        "type": "bytea",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "created_by",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "update_id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "document_versions_document_id_created_at_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "document_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "collab",
+        "table": "document_versions",
+        "name": "document_versions_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    }
+  ]
+}

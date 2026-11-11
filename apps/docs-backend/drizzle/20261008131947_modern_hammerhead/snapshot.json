@@ -1,492 +1,376 @@
 {
-  "version": "8",
+  "type": "diff",
+  "version": "9",
   "dialect": "postgres",
   "id": "efa12d60-3283-4029-b7a9-4ea22c5cf06e",
   "prevIds": [
     "88d882db-21de-4a4b-ac01-5ed30ab729fd"
   ],
-  "ddl": [
+  "footprints": [
     {
-      "name": "auth",
-      "entityType": "schemas"
-    },
-    {
-      "name": "documents",
-      "entityType": "schemas"
-    },
-    {
-      "name": "organization",
-      "entityType": "schemas"
-    },
-    {
-      "values": [
-        "owner",
-        "admin",
-        "member"
+      "statementType": "create_schema",
+      "statementTarget": [
+        "schema",
+        "organization"
       ],
-      "name": "organization_role",
-      "entityType": "enums",
-      "schema": "public"
+      "writes": [
+        "s|sch|organization",
+        "n|sch|organization",
+        "e|sch|organization"
+      ]
     },
     {
-      "isRlsEnabled": false,
-      "name": "documents",
-      "entityType": "tables",
-      "schema": "documents"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "organization_members",
-      "entityType": "tables",
-      "schema": "organization"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "organizations",
-      "entityType": "tables",
-      "schema": "organization"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "refresh_tokens",
-      "entityType": "tables",
-      "schema": "auth"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "users",
-      "entityType": "tables",
-      "schema": "auth"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "title",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "organization_id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "organization_role",
-      "typeSchema": "public",
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "role",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organizations"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "name",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organizations"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organizations"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "session_id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "token_hash",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "revoked_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "email",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "password_hash",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "organization_role"
       ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "documents_created_at_idx",
-      "entityType": "indexes",
-      "schema": "documents",
-      "table": "documents"
+      "writes": [
+        "s|enum|public.organization_role",
+        "n|enum|public.organization_role",
+        "e|enum|public.organization_role",
+        "n|type|public.organization_role"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "organization",
+        "organization_members"
       ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "user_id_idx",
-      "entityType": "indexes",
-      "schema": "organization",
-      "table": "organization_members"
+      "writes": [
+        "s|tbl|organization.organization_members",
+        "n|tbl|organization.organization_members",
+        "e|tbl|organization.organization_members",
+        "n|rel|organization.organization_members",
+        "n|type|organization.organization_members",
+        "n|rel|organization.organization_members_pkey",
+        "n|rel|organization.member_unique"
+      ],
+      "reads": [
+        "n|sch|organization",
+        "n|enum|public.organization_role"
+      ]
     },
     {
-      "nameExplicit": false,
-      "columns": [
-        "organization_id"
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "organization",
+        "organizations"
       ],
-      "schemaTo": "organization",
-      "tableTo": "organizations",
-      "columnsTo": [
-        "id"
+      "writes": [
+        "s|tbl|organization.organizations",
+        "n|tbl|organization.organizations",
+        "e|tbl|organization.organizations",
+        "n|rel|organization.organizations",
+        "n|type|organization.organizations",
+        "n|rel|organization.organizations_pkey"
       ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "organization_members_organization_id_organizations_id_fkey",
-      "entityType": "fks",
-      "schema": "organization",
-      "table": "organization_members"
+      "reads": [
+        "n|sch|organization"
+      ]
     },
     {
-      "columns": [
-        "id"
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "organization",
+        "organization_members",
+        "user_id_idx"
       ],
-      "nameExplicit": false,
-      "name": "documents_pkey",
-      "schema": "documents",
-      "table": "documents",
-      "entityType": "pks"
+      "writes": [
+        "s|idx|organization.user_id_idx",
+        "n|idx|organization.user_id_idx",
+        "e|idx|organization.user_id_idx",
+        "n|rel|organization.user_id_idx"
+      ],
+      "reads": [
+        "n|tbl|organization.organization_members",
+        "n|sch|organization",
+        "n|col|organization.organization_members.user_id"
+      ]
     },
     {
-      "columns": [
-        "id"
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "organization",
+        "organization_members"
       ],
-      "nameExplicit": false,
-      "name": "organization_members_pkey",
-      "schema": "organization",
-      "table": "organization_members",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
+      "writes": [
+        "s|fk|organization.organization_members.organization_members_organization_id_organizations_id_fkey",
+        "n|fk|organization.organization_members.organization_members_organization_id_organizations_id_fkey",
+        "e|fk|organization.organization_members.organization_members_organization_id_organizations_id_fkey",
+        "n|con|organization.organization_members.organization_members_organization_id_organizations_id_fkey"
       ],
-      "nameExplicit": false,
-      "name": "organizations_pkey",
-      "schema": "organization",
-      "table": "organizations",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "refresh_tokens_pkey",
-      "schema": "auth",
-      "table": "refresh_tokens",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "users_pkey",
-      "schema": "auth",
-      "table": "users",
-      "entityType": "pks"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organization_id",
-        "user_id"
-      ],
-      "nullsNotDistinct": false,
-      "name": "member_unique",
-      "entityType": "uniques",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "token_hash"
-      ],
-      "nullsNotDistinct": false,
-      "name": "refresh_tokens_token_hash_key",
-      "schema": "auth",
-      "table": "refresh_tokens",
-      "entityType": "uniques"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "email"
-      ],
-      "nullsNotDistinct": false,
-      "name": "users_email_key",
-      "schema": "auth",
-      "table": "users",
-      "entityType": "uniques"
+      "reads": [
+        "n|tbl|organization.organization_members",
+        "n|sch|organization",
+        "n|tbl|organization.organizations",
+        "n|sch|organization",
+        "n|col|organization.organization_members.organization_id",
+        "n|col|organization.organizations.id",
+        "e|uniqueness|organization.organizations.id"
+      ]
     }
   ],
-  "renames": []
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "name": "organization",
+        "entityType": "schemas"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "name": "organization_members",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "name": "organizations",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "organization_role",
+        "values": [
+          "owner",
+          "admin",
+          "member"
+        ],
+        "entityType": "enums"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "uuidv7()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "organization_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "user_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "role",
+        "type": "organization_role",
+        "typeSchema": "public",
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organizations",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "uuidv7()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organizations",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organizations",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "user_id_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "user_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "organization_members_organization_id_organizations_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "organization_id"
+        ],
+        "schemaTo": "organization",
+        "tableTo": "organizations",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "organization_members_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organizations",
+        "name": "organizations_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "organization",
+        "table": "organization_members",
+        "name": "member_unique",
+        "nameExplicit": true,
+        "columns": [
+          "organization_id",
+          "user_id"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    }
+  ]
 }

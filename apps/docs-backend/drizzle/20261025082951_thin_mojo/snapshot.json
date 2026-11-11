@@ -1,1083 +1,202 @@
 {
-  "version": "8",
+  "type": "diff",
+  "version": "9",
   "dialect": "postgres",
   "id": "70f2f2ab-496a-4b9d-9a0b-f00f732e6d34",
   "prevIds": [
     "4ad8b480-b26d-4cab-8740-47cb43551f06"
   ],
-  "ddl": [
+  "footprints": [
     {
-      "name": "auth",
-      "entityType": "schemas"
-    },
-    {
-      "name": "collab",
-      "entityType": "schemas"
-    },
-    {
-      "name": "documents",
-      "entityType": "schemas"
-    },
-    {
-      "name": "organization",
-      "entityType": "schemas"
-    },
-    {
-      "values": [
-        "owner",
-        "admin",
-        "member"
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "auth",
+        "refresh_tokens",
+        "user_agent"
       ],
-      "name": "organization_role",
-      "entityType": "enums",
-      "schema": "public"
-    },
-    {
-      "values": [
-        "rotated",
-        "logout",
-        "logout_all",
-        "reuse",
-        "password_reset"
+      "writes": [
+        "s|col|auth.refresh_tokens.user_agent",
+        "n|col|auth.refresh_tokens.user_agent",
+        "e|col|auth.refresh_tokens.user_agent"
       ],
-      "name": "refresh_token_revoke_reason",
-      "entityType": "enums",
-      "schema": "public"
+      "reads": [
+        "n|tbl|auth.refresh_tokens",
+        "n|sch|auth"
+      ]
     },
     {
-      "isRlsEnabled": false,
-      "name": "document_snapshots",
-      "entityType": "tables",
-      "schema": "collab"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "document_updates",
-      "entityType": "tables",
-      "schema": "collab"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "documents",
-      "entityType": "tables",
-      "schema": "documents"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "email_verification_tokens",
-      "entityType": "tables",
-      "schema": "auth"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "organization_members",
-      "entityType": "tables",
-      "schema": "organization"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "organizations",
-      "entityType": "tables",
-      "schema": "organization"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "password_reset_tokens",
-      "entityType": "tables",
-      "schema": "auth"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "refresh_tokens",
-      "entityType": "tables",
-      "schema": "auth"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "users",
-      "entityType": "tables",
-      "schema": "auth"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "document_id",
-      "entityType": "columns",
-      "schema": "collab",
-      "table": "document_snapshots"
-    },
-    {
-      "type": "bytea",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "snapshot",
-      "entityType": "columns",
-      "schema": "collab",
-      "table": "document_snapshots"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "collab",
-      "table": "document_snapshots"
-    },
-    {
-      "type": "bigint",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": {
-        "type": "always",
-        "name": "document_updates_id_seq",
-        "increment": "1",
-        "startWith": "1",
-        "minValue": "1",
-        "maxValue": "9223372036854775807",
-        "cache": 1,
-        "cycle": false
-      },
-      "name": "id",
-      "entityType": "columns",
-      "schema": "collab",
-      "table": "document_updates"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "document_id",
-      "entityType": "columns",
-      "schema": "collab",
-      "table": "document_updates"
-    },
-    {
-      "type": "bytea",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "update",
-      "entityType": "columns",
-      "schema": "collab",
-      "table": "document_updates"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "collab",
-      "table": "document_updates"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "title",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "organization_id",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "created_by",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "updated_at",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "token_hash",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "used_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "email_verification_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "organization_id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "organization_role",
-      "typeSchema": "public",
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "role",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organizations"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "name",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organizations"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "organization",
-      "table": "organizations"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "token_hash",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "used_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "password_reset_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "session_id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "token_hash",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "expires_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "revoked_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "refresh_token_revoke_reason",
-      "typeSchema": "public",
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "revoked_reason",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "user_agent",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "ip",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "last_used_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "type": "uuid",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "uuidv7()",
-      "generated": null,
-      "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "email",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "password_hash",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "now()",
-      "generated": null,
-      "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "type": "timestamp with time zone",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "email_verified_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "document_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        },
-        {
-          "value": "id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "auth",
+        "refresh_tokens",
+        "ip"
       ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "document_updates_document_id_idx",
-      "entityType": "indexes",
-      "schema": "collab",
-      "table": "document_updates"
+      "writes": [
+        "s|col|auth.refresh_tokens.ip",
+        "n|col|auth.refresh_tokens.ip",
+        "e|col|auth.refresh_tokens.ip"
+      ],
+      "reads": [
+        "n|tbl|auth.refresh_tokens",
+        "n|sch|auth"
+      ]
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "created_at",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "auth",
+        "refresh_tokens",
+        "last_used_at"
       ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "documents_created_at_idx",
-      "entityType": "indexes",
-      "schema": "documents",
-      "table": "documents"
+      "writes": [
+        "s|col|auth.refresh_tokens.last_used_at",
+        "n|col|auth.refresh_tokens.last_used_at",
+        "e|col|auth.refresh_tokens.last_used_at"
+      ],
+      "reads": [
+        "n|tbl|auth.refresh_tokens",
+        "n|sch|auth"
+      ]
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "organization_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "auth",
+        "refresh_tokens",
+        "refresh_tokens_live_session_uidx"
       ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "documents_organization_id_idx",
-      "entityType": "indexes",
-      "schema": "documents",
-      "table": "documents"
+      "writes": [
+        "s|idx|auth.refresh_tokens_live_session_uidx",
+        "n|idx|auth.refresh_tokens_live_session_uidx",
+        "e|idx|auth.refresh_tokens_live_session_uidx",
+        "n|rel|auth.refresh_tokens_live_session_uidx"
+      ],
+      "reads": [
+        "n|tbl|auth.refresh_tokens",
+        "n|sch|auth",
+        "n|col|auth.refresh_tokens.session_id"
+      ]
     },
     {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "auth",
+        "refresh_tokens"
       ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "email_verification_tokens_user_id_idx",
-      "entityType": "indexes",
-      "schema": "auth",
-      "table": "email_verification_tokens"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
+      "writes": [
+        "s|fk|auth.refresh_tokens.refresh_tokens_user_id_users_id_fkey",
+        "n|fk|auth.refresh_tokens.refresh_tokens_user_id_users_id_fkey",
+        "e|fk|auth.refresh_tokens.refresh_tokens_user_id_users_id_fkey",
+        "n|con|auth.refresh_tokens.refresh_tokens_user_id_users_id_fkey"
       ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "user_id_idx",
-      "entityType": "indexes",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "user_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "password_reset_tokens_user_id_idx",
-      "entityType": "indexes",
-      "schema": "auth",
-      "table": "password_reset_tokens"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "session_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": "\"revoked_at\" is null",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "refresh_tokens_live_session_uidx",
-      "entityType": "indexes",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "organization_id"
-      ],
-      "schemaTo": "organization",
-      "tableTo": "organizations",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "organization_members_organization_id_organizations_id_fkey",
-      "entityType": "fks",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "user_id"
-      ],
-      "schemaTo": "auth",
-      "tableTo": "users",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "name": "refresh_tokens_user_id_users_id_fkey",
-      "entityType": "fks",
-      "schema": "auth",
-      "table": "refresh_tokens"
-    },
-    {
-      "columns": [
-        "document_id"
-      ],
-      "nameExplicit": false,
-      "name": "document_snapshots_pkey",
-      "schema": "collab",
-      "table": "document_snapshots",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "document_updates_pkey",
-      "schema": "collab",
-      "table": "document_updates",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "documents_pkey",
-      "schema": "documents",
-      "table": "documents",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "email_verification_tokens_pkey",
-      "schema": "auth",
-      "table": "email_verification_tokens",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "organization_members_pkey",
-      "schema": "organization",
-      "table": "organization_members",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "organizations_pkey",
-      "schema": "organization",
-      "table": "organizations",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "password_reset_tokens_pkey",
-      "schema": "auth",
-      "table": "password_reset_tokens",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "refresh_tokens_pkey",
-      "schema": "auth",
-      "table": "refresh_tokens",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "users_pkey",
-      "schema": "auth",
-      "table": "users",
-      "entityType": "pks"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        "organization_id",
-        "user_id"
-      ],
-      "nullsNotDistinct": false,
-      "name": "member_unique",
-      "entityType": "uniques",
-      "schema": "organization",
-      "table": "organization_members"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "token_hash"
-      ],
-      "nullsNotDistinct": false,
-      "name": "email_verification_tokens_token_hash_key",
-      "schema": "auth",
-      "table": "email_verification_tokens",
-      "entityType": "uniques"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "token_hash"
-      ],
-      "nullsNotDistinct": false,
-      "name": "password_reset_tokens_token_hash_key",
-      "schema": "auth",
-      "table": "password_reset_tokens",
-      "entityType": "uniques"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "token_hash"
-      ],
-      "nullsNotDistinct": false,
-      "name": "refresh_tokens_token_hash_key",
-      "schema": "auth",
-      "table": "refresh_tokens",
-      "entityType": "uniques"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "email"
-      ],
-      "nullsNotDistinct": false,
-      "name": "users_email_key",
-      "schema": "auth",
-      "table": "users",
-      "entityType": "uniques"
+      "reads": [
+        "n|tbl|auth.refresh_tokens",
+        "n|sch|auth",
+        "n|tbl|auth.users",
+        "n|sch|auth",
+        "n|col|auth.refresh_tokens.user_id",
+        "n|col|auth.users.id",
+        "e|uniqueness|auth.users.id"
+      ]
     }
   ],
-  "renames": []
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "auth",
+        "table": "refresh_tokens",
+        "name": "user_agent",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "auth",
+        "table": "refresh_tokens",
+        "name": "ip",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "auth",
+        "table": "refresh_tokens",
+        "name": "last_used_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "auth",
+        "table": "refresh_tokens",
+        "name": "refresh_tokens_live_session_uidx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "session_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": "\"revoked_at\" is null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "auth",
+        "table": "refresh_tokens",
+        "name": "refresh_tokens_user_id_users_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "user_id"
+        ],
+        "schemaTo": "auth",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    }
+  ]
 }

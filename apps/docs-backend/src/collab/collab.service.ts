@@ -5,6 +5,7 @@ import { COLLAB_EVICT_GRACE, COLLAB_SAVE_INTERVAL } from './collab.constants';
 import { CollabConnection } from './collab.models';
 import { CollabRepository } from './collab.repository';
 import { CollabRoom } from './collab.room';
+import { VersionCheckpointService } from './version-checkpoint.service';
 
 @Injectable()
 export class CollabService implements OnModuleDestroy {
@@ -14,7 +15,10 @@ export class CollabService implements OnModuleDestroy {
   private readonly evictTimers = new Map<string, NodeJS.Timeout>();
   private readonly compactTimers = new Map<string, NodeJS.Timeout>();
 
-  constructor(private readonly collabRepository: CollabRepository) {}
+  constructor(
+    private readonly collabRepository: CollabRepository,
+    private readonly versionCheckpointService: VersionCheckpointService,
+  ) {}
 
   public async getRoom(documentId: string): Promise<CollabRoom> {
     const existingRoom = this.rooms.get(documentId);
@@ -72,7 +76,38 @@ export class CollabService implements OnModuleDestroy {
   async compact(documentId: string): Promise<void> {
     const room = this.rooms.get(documentId);
     if (!room) return;
-    await room.compact();
+
+    const saved = await room.compact();
+
+    if (!saved) return;
+
+    // Авто-чекпоинт решается после штатной компакции: снапшот уже посчитан,
+    // журнал ещё помнит границу (`updateId`).
+    const recorded = await this.versionCheckpointService.maybeRecord({
+      documentId,
+      snapshot: saved.snapshot,
+      updateId: saved.updateId,
+      updatesSinceCheckpoint: room.updatesSinceCheckpoint,
+    });
+
+    if (recorded) room.markVersionWritten();
+  }
+
+  // Операция над комнатой вне WS-соединения (создание версии, откат). Если
+  // комнаты не было — она загружается на время операции и закрывается после:
+  // иначе история и restore оставляли бы в памяти пустую комнату с таймером.
+  async runOnRoom<T>(
+    documentId: string,
+    work: (room: CollabRoom) => Promise<T>,
+  ): Promise<T> {
+    const existing = this.rooms.get(documentId);
+    const room = existing ?? (await this.getRoom(documentId));
+
+    try {
+      return await work(room);
+    } finally {
+      if (!existing) await this.evict(documentId);
+    }
   }
 
   private scheduleCompact(documentId: string): void {

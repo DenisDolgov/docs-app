@@ -1,9 +1,95 @@
 {
-  "version": "8",
+  "type": "base",
+  "version": "9",
   "dialect": "postgres",
   "id": "ff684a65-2f8e-43c3-89c7-4c40f8240ab3",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_schema",
+      "statementTarget": [
+        "schema",
+        "auth"
+      ],
+      "writes": [
+        "s|sch|auth",
+        "n|sch|auth",
+        "e|sch|auth"
+      ]
+    },
+    {
+      "statementType": "create_schema",
+      "statementTarget": [
+        "schema",
+        "documents"
+      ],
+      "writes": [
+        "s|sch|documents",
+        "n|sch|documents",
+        "e|sch|documents"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "documents",
+        "documents"
+      ],
+      "writes": [
+        "s|tbl|documents.documents",
+        "n|tbl|documents.documents",
+        "e|tbl|documents.documents",
+        "n|rel|documents.documents",
+        "n|type|documents.documents",
+        "n|rel|documents.documents_pkey"
+      ],
+      "reads": [
+        "n|sch|documents"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "auth",
+        "users"
+      ],
+      "writes": [
+        "s|tbl|auth.users",
+        "n|tbl|auth.users",
+        "e|tbl|auth.users",
+        "n|rel|auth.users",
+        "n|type|auth.users",
+        "n|rel|auth.users_pkey",
+        "n|rel|auth.users_email_key"
+      ],
+      "reads": [
+        "n|sch|auth"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "documents",
+        "documents",
+        "documents_created_at_idx"
+      ],
+      "writes": [
+        "s|idx|documents.documents_created_at_idx",
+        "n|idx|documents.documents_created_at_idx",
+        "e|idx|documents.documents_created_at_idx",
+        "n|rel|documents.documents_created_at_idx"
+      ],
+      "reads": [
+        "n|tbl|documents.documents",
+        "n|sch|documents",
+        "n|col|documents.documents.created_at"
+      ]
+    }
   ],
   "ddl": [
     {
@@ -15,18 +101,21 @@
       "entityType": "schemas"
     },
     {
-      "isRlsEnabled": false,
+      "schema": "documents",
       "name": "documents",
-      "entityType": "tables",
-      "schema": "documents"
-    },
-    {
       "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "auth",
       "name": "users",
-      "entityType": "tables",
-      "schema": "auth"
+      "isRlsEnabled": false,
+      "entityType": "tables"
     },
     {
+      "schema": "documents",
+      "table": "documents",
+      "name": "id",
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -34,25 +123,25 @@
       "default": "uuidv7()",
       "generated": null,
       "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
+      "entityType": "columns"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "documents",
+      "table": "documents",
       "name": "title",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
     },
     {
+      "schema": "documents",
+      "table": "documents",
+      "name": "created_at",
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -60,12 +149,12 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "documents",
-      "table": "documents"
+      "entityType": "columns"
     },
     {
+      "schema": "auth",
+      "table": "users",
+      "name": "id",
       "type": "uuid",
       "typeSchema": null,
       "notNull": true,
@@ -73,25 +162,12 @@
       "default": "uuidv7()",
       "generated": null,
       "identity": null,
-      "name": "id",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
+      "entityType": "columns"
     },
     {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
+      "schema": "auth",
+      "table": "users",
       "name": "email",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
-    },
-    {
       "type": "text",
       "typeSchema": null,
       "notNull": true,
@@ -99,12 +175,25 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "password_hash",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
+      "entityType": "columns"
     },
     {
+      "schema": "auth",
+      "table": "users",
+      "name": "password_hash",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "auth",
+      "table": "users",
+      "name": "created_at",
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -112,12 +201,12 @@
       "default": "now()",
       "generated": null,
       "identity": null,
-      "name": "created_at",
-      "entityType": "columns",
-      "schema": "auth",
-      "table": "users"
+      "entityType": "columns"
     },
     {
+      "schema": "documents",
+      "table": "documents",
+      "name": "documents_created_at_idx",
       "nameExplicit": true,
       "columns": [
         {
@@ -133,42 +222,38 @@
       "with": "",
       "method": "btree",
       "concurrently": false,
-      "name": "documents_created_at_idx",
-      "entityType": "indexes",
-      "schema": "documents",
-      "table": "documents"
+      "entityType": "indexes"
     },
     {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "documents_pkey",
       "schema": "documents",
       "table": "documents",
-      "entityType": "pks"
-    },
-    {
+      "name": "documents_pkey",
       "columns": [
         "id"
       ],
       "nameExplicit": false,
-      "name": "users_pkey",
-      "schema": "auth",
-      "table": "users",
       "entityType": "pks"
     },
     {
+      "schema": "auth",
+      "table": "users",
+      "name": "users_pkey",
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "schema": "auth",
+      "table": "users",
+      "name": "users_email_key",
       "nameExplicit": false,
       "columns": [
         "email"
       ],
       "nullsNotDistinct": false,
-      "name": "users_email_key",
-      "schema": "auth",
-      "table": "users",
       "entityType": "uniques"
     }
-  ],
-  "renames": []
+  ]
 }

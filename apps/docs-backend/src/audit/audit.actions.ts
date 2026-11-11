@@ -12,6 +12,8 @@ export const auditActions = [
   'organization_invite.revoked',
   'organization_invite.accepted',
   'document.removed',
+  'document_version.created',
+  'document_version.restored',
   'document_share.granted',
   'document_share.revoked',
   'folder.created',

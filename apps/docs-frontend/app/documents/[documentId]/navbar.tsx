@@ -5,6 +5,7 @@ import {
   FileIcon,
   FilePenIcon,
   FilePlusIcon,
+  HistoryIcon,
   ItalicIcon,
   PrinterIcon,
   Redo2Icon,
@@ -17,9 +18,12 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useState } from 'react';
 
 import { OrganizationSwitcher } from '@/app/(home)/organization-switcher';
 import { DocumentInput } from '@/app/documents/[documentId]/document-input';
+import { DocumentHistoryDialog } from '@/components/document-history-dialog';
 import {
   Menubar,
   MenubarContent,
@@ -38,6 +42,8 @@ import { useEditorStore } from '@/store/use-editor-store';
 // todo добавить шорткаты
 export const Navbar = () => {
   const { editor } = useEditorStore();
+  const params = useParams<{ documentId: string }>();
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const insertTable = (rows: number, cols: number) => {
     editor
@@ -126,6 +132,10 @@ export const Navbar = () => {
                   <MenubarItem>
                     <TrashIcon className="size-4" />
                     Удалить
+                  </MenubarItem>
+                  <MenubarItem onClick={() => setHistoryOpen(true)}>
+                    <HistoryIcon className="size-4" />
+                    История версий
                   </MenubarItem>
                   <MenubarSeparator />
                   <MenubarItem onClick={() => window.print()}>
@@ -238,6 +248,11 @@ export const Navbar = () => {
         <OrganizationSwitcher />
         <UserMenu />
       </div>
+      <DocumentHistoryDialog
+        documentId={params.documentId}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
     </nav>
   );
 };

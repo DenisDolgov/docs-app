@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, lt, lte } from 'drizzle-orm';
+import { and, eq, lte } from 'drizzle-orm';
 
 import { DATABASE, Database } from '../database/database.constants';
 import * as schema from '../database/schema';

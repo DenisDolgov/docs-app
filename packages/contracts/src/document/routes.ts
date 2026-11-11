@@ -6,6 +6,9 @@ const sharesSegment = 'shares';
 const shareUserParam = 'userId';
 const publicLinksSegment = 'public-links';
 const publicLinkParam = 'linkId';
+const versionsSegment = 'versions';
+const versionParam = 'versionId';
+const restoreSegment = 'restore';
 
 export const documentRoute = {
   base,
@@ -17,6 +20,9 @@ export const documentRoute = {
   publicLinksPattern: `/:${param}/${publicLinksSegment}`,
   publicLinkPattern: `/:${param}/${publicLinksSegment}/:${publicLinkParam}`,
   publicLinkParam,
+  versionsPattern: `/:${param}/${versionsSegment}`,
+  versionRestorePattern: `/:${param}/${versionsSegment}/:${versionParam}/${restoreSegment}`,
+  versionParam,
   paths: {
     collection: `/${base}`,
     byId: (documentId: string) => `/${base}/${documentId}`,
@@ -27,6 +33,10 @@ export const documentRoute = {
       `/${base}/${documentId}/${publicLinksSegment}`,
     publicLink: (documentId: string, linkId: string) =>
       `/${base}/${documentId}/${publicLinksSegment}/${linkId}`,
+    versions: (documentId: string) =>
+      `/${base}/${documentId}/${versionsSegment}`,
+    versionRestore: (documentId: string, versionId: string) =>
+      `/${base}/${documentId}/${versionsSegment}/${versionId}/${restoreSegment}`,
   },
 } as const;
 
