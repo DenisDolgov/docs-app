@@ -11,6 +11,7 @@ import { OriginGuard } from './common/origin.guard';
 import { envSchema } from './config/env.schema';
 import { DatabaseModule } from './database/database.module';
 import { DocumentModule } from './document/document.module';
+import { FileModule } from './file/file.module';
 import { HealthModule } from './health/health.module';
 import { createLoggerParams } from './logger/logger.config';
 import { MailModule } from './mail/mail.module';
@@ -38,6 +39,7 @@ import { StorageModule } from './storage/storage.module';
     AuthModule,
     OrganizationModule,
     DocumentModule,
+    FileModule,
     CollabModule,
     MailModule,
   ],

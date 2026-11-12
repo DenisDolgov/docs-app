@@ -1,5 +1,6 @@
 import { userResponseDto } from '@docs-app/contracts/auth';
 import { documentResponseDto } from '@docs-app/contracts/document';
+import { fileDto } from '@docs-app/contracts/file';
 import { describe, expect, it } from 'vitest';
 
 const documentBody = {
@@ -55,6 +56,35 @@ describe('documentResponseDto (unit)', () => {
 
     expect(jsonSchema).toBeDefined();
     expect(JSON.stringify(jsonSchema)).toContain('"date-time"');
+  });
+});
+
+describe('fileDto (unit)', () => {
+  const body = {
+    id: '11111111-1111-7111-8111-111111111111',
+    ownerId: '22222222-2222-7222-8222-222222222222',
+    organizationId: null,
+    documentId: '33333333-3333-7333-8333-333333333333',
+    name: 'скан.pdf',
+    mime: 'application/pdf',
+    size: 1024,
+    status: 'ready',
+    createdAt: '2026-01-02T03:04:05.000Z',
+  };
+
+  it('не отдаёт ключ объекта в хранилище', () => {
+    const parsed = fileDto.parse({
+      ...body,
+      key: 'files/secret',
+      passwordHash: 'секрет',
+    });
+
+    expect(parsed).not.toHaveProperty('key');
+    expect(parsed).not.toHaveProperty('passwordHash');
+  });
+
+  it('принимает только известные статусы', () => {
+    expect(() => fileDto.parse({ ...body, status: 'uploaded' })).toThrow();
   });
 });
 

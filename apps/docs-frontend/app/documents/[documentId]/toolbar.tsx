@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@base-ui/react';
+import { MAX_UPLOAD_BYTES } from '@docs-app/contracts/file/limits';
 import type { Level } from '@tiptap/extension-heading';
 import {
   AlignCenterIcon,
@@ -30,6 +31,7 @@ import {
   Undo2Icon,
   UploadIcon,
 } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { type Color, type ColorResult, SketchPicker } from 'react-color';
 
@@ -48,6 +50,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/components/ui/toast';
+import { fileContentUrl, uploadFile } from '@/lib/files';
 import { cn } from '@/lib/utils';
 import { useEditorStore } from '@/store/use-editor-store';
 
@@ -278,8 +282,10 @@ const AlignButton = () => {
 
 const ImageButton = () => {
   const { editor } = useEditorStore();
+  const params = useParams<{ documentId: string }>();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const onChange = (src: string) => {
     editor?.chain().focus().setImage({ src }).run();
@@ -288,14 +294,38 @@ const ImageButton = () => {
   const onUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = 'image/png,image/jpeg,image/gif,image/webp';
 
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
 
-      if (file) {
-        const imageUrl = URL.createObjectURL(file);
-        onChange(imageUrl);
+      if (!file) return;
+
+      if (file.size > MAX_UPLOAD_BYTES) {
+        toast.add({ type: 'error', title: 'Файл слишком большой' });
+        return;
+      }
+
+      setIsUploading(true);
+
+      try {
+        const uploaded = await uploadFile({
+          file,
+          documentId: params.documentId,
+        });
+
+        // В документ попадает стабильный путь, а не ссылка с подписью.
+        onChange(fileContentUrl(uploaded.id));
+      } catch (error: unknown) {
+        toast.add({
+          type: 'error',
+          title:
+            error instanceof Error
+              ? error.message
+              : 'Не удалось загрузить изображение',
+        });
+      } finally {
+        setIsUploading(false);
       }
     };
 
@@ -317,9 +347,9 @@ const ImageButton = () => {
           <ImageIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="p-2.5 w-[200px] flex flex-col">
-          <DropdownMenuItem onClick={onUpload}>
+          <DropdownMenuItem onClick={onUpload} disabled={isUploading}>
             <UploadIcon className="size-4 mr-2" />
-            Upload
+            {isUploading ? 'Загрузка…' : 'Upload'}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
             <SearchIcon className="size-4 mr-2" />

@@ -1,3 +1,4 @@
+import { AttachmentsPanel } from './attachments-panel';
 import { Editor } from './editor';
 import { Navbar } from './navbar';
 import { Room } from './room';
@@ -9,6 +10,7 @@ const DocumentIdPage = () => {
       <Navbar />
       <Toolbar />
       <Editor />
+      <AttachmentsPanel />
     </Room>
   );
 };

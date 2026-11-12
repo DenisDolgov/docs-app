@@ -3,6 +3,7 @@ import { defineRelations } from 'drizzle-orm';
 import { auditEvents } from './audit';
 import { documentSnapshots, documentUpdates, documentVersions } from './collab';
 import { documents, folders } from './documents';
+import { fileSchema, fileStatusEnum, files } from './file';
 import {
   organizationInvites,
   organizationMembers,
@@ -25,6 +26,7 @@ export {
   documentVersions,
 } from './collab';
 export { documentSchema, documents, folders } from './documents';
+export { fileSchema, fileStatusEnum, files } from './file';
 export {
   organizationInvites,
   organizationMembers,
@@ -53,6 +55,7 @@ export const relations = defineRelations(
   {
     documents,
     folders,
+    files,
     users,
     refreshTokens,
     emailVerificationTokens,

@@ -12,9 +12,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 
-import { S3 } from './storage.constants';
-
-const SIGN_EXPIRES_IN = 900;
+import { S3, SIGNED_URL_TTL_SECONDS } from './storage.constants';
 
 @Injectable()
 export class StorageService {
@@ -57,7 +55,7 @@ export class StorageService {
 
     try {
       return await getSignedUrl(this.s3Client, command, {
-        expiresIn: SIGN_EXPIRES_IN,
+        expiresIn: SIGNED_URL_TTL_SECONDS,
       });
     } catch (error: unknown) {
       this.logger.error(error);
@@ -73,7 +71,7 @@ export class StorageService {
 
     try {
       return await getSignedUrl(this.s3Client, command, {
-        expiresIn: SIGN_EXPIRES_IN,
+        expiresIn: SIGNED_URL_TTL_SECONDS,
       });
     } catch (error: unknown) {
       this.logger.error(error);

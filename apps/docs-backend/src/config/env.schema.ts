@@ -10,6 +10,7 @@ export const envSchema = z
     REDIS_URL: z.url().default('redis://localhost:6379'),
     RABBITMQ_URL: z.url().default('amqp://user:pass@localhost:5672'),
     S3_ENDPOINT: z.url().default('http://localhost:9000'),
+    S3_BUCKET: z.string().min(1).default('documents'),
     S3_ACCESS_KEY: z.string().default('user'),
     S3_SECRET_KEY: z.string().default('pass-secret'),
     JWT_ACCESS_SECRET: z.string().min(16),

@@ -38,6 +38,18 @@
       "types": "./dist/document/routes.d.ts",
       "default": "./dist/document/routes.js"
     },
+    "./file": {
+      "types": "./dist/file/index.d.ts",
+      "default": "./dist/file/index.js"
+    },
+    "./file/routes": {
+      "types": "./dist/file/routes.d.ts",
+      "default": "./dist/file/routes.js"
+    },
+    "./file/limits": {
+      "types": "./dist/file/limits.d.ts",
+      "default": "./dist/file/limits.js"
+    },
     "./folder": {
       "types": "./dist/folder/index.d.ts",
       "default": "./dist/folder/index.js"

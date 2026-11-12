@@ -4,6 +4,7 @@ import {
   organizationDocumentRoute,
   publicDocumentRoute,
 } from '@docs-app/contracts/document/routes';
+import { fileRoute } from '@docs-app/contracts/file/routes';
 import { folderRoute } from '@docs-app/contracts/folder/routes';
 import {
   inviteRoute,
@@ -97,5 +98,14 @@ describe('контракт маршрутов', () => {
     expect(publicDocumentRoute.paths.document('t0k')).toBe(
       '/public/documents/t0k',
     );
+  });
+
+  it('пути файлов выведены из base и параметра', () => {
+    expect(fileRoute.byIdPattern).toBe(`/:${fileRoute.param}`);
+    expect(fileRoute.paths.collection).toBe('/files');
+    expect(fileRoute.paths.uploadUrl).toBe('/files/upload-url');
+    expect(fileRoute.paths.complete('f1')).toBe('/files/f1/complete');
+    expect(fileRoute.paths.downloadUrl('f1')).toBe('/files/f1/download-url');
+    expect(fileRoute.paths.content('f1')).toBe('/files/f1/content');
   });
 });

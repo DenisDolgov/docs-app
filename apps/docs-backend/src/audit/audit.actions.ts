@@ -12,6 +12,7 @@ export const auditActions = [
   'organization_invite.revoked',
   'organization_invite.accepted',
   'document.removed',
+  'file.removed',
   'document_version.created',
   'document_version.restored',
   'document_share.granted',
@@ -33,6 +34,7 @@ export const auditTargetTypes = [
   'organization',
   'document',
   'folder',
+  'file',
 ] as const;
 
 export type AuditTargetType = (typeof auditTargetTypes)[number];

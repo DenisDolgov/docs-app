@@ -38,6 +38,8 @@ describe('openapi (e2e)', () => {
       '/organizations/{organizationId}/documents',
     );
     expect(res.body.paths).toHaveProperty('/auth/me');
+    expect(res.body.paths).toHaveProperty('/files');
+    expect(res.body.paths).toHaveProperty('/files/upload-url');
   });
 
   it('документирует таймстемпы как строки, а не как внутренний тип', async () => {

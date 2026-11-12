@@ -36,5 +36,6 @@ import { PublicDocumentController } from './public-document.controller';
     OrganizationFolderController,
     FolderController,
   ],
+  exports: [DocumentRepository],
 })
 export class DocumentModule {}
