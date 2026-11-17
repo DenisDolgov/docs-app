@@ -15,6 +15,7 @@ import { useRoom } from '@/app/documents/[documentId]/room';
 import { Ruler } from '@/app/documents/[documentId]/ruler';
 import { useAuth } from '@/components/auth-provider';
 import { presenceFromEmail } from '@/lib/collab/presence';
+import { CommentHighlight } from '@/lib/comments/anchor';
 import { useEditorStore } from '@/store/use-editor-store';
 
 // todo use tiptap hooks for state sharing
@@ -93,6 +94,7 @@ export const Editor = () => {
       }),
       TextStyleKit,
       Highlight.configure({ multicolor: true }),
+      CommentHighlight,
     ],
     // Don't render immediately on the server to avoid SSR issues
     immediatelyRender: false,

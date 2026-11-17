@@ -68,6 +68,14 @@ export default async function setup() {
   await client.query(
     'truncate auth.users, auth.refresh_tokens, auth.email_verification_tokens, auth.password_reset_tokens, document.documents, document.folders, file.files, permission.document_shares, permission.folder_shares, permission.public_links, organization.organization_invites, audit.events cascade',
   );
+  // `document.comments` появляется в миграции шага M2.4: до неё таблицы в
+  // тестовой БД нет, и безусловный truncate уронил бы весь прогон.
+  const comments = await client.query<{ present: boolean }>(
+    `select to_regclass('document.comments') is not null as present`,
+  );
+  if (comments.rows[0]?.present) {
+    await client.query('truncate document.comments cascade');
+  }
   await client.end();
 
   return async () => {};

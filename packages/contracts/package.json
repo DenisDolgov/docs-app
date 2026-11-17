@@ -65,6 +65,18 @@
     "./collab/protocol": {
       "types": "./dist/collab/protocol.d.ts",
       "default": "./dist/collab/protocol.js"
+    },
+    "./comment": {
+      "types": "./dist/comment/index.d.ts",
+      "default": "./dist/comment/index.js"
+    },
+    "./comment/routes": {
+      "types": "./dist/comment/routes.d.ts",
+      "default": "./dist/comment/routes.js"
+    },
+    "./comment/limits": {
+      "types": "./dist/comment/limits.d.ts",
+      "default": "./dist/comment/limits.js"
     }
   },
   "files": [

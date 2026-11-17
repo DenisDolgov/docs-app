@@ -1,4 +1,5 @@
 import { authPaths, authRoute } from '@docs-app/contracts/auth/routes';
+import { commentRoute } from '@docs-app/contracts/comment/routes';
 import {
   documentRoute,
   organizationDocumentRoute,
@@ -107,5 +108,16 @@ describe('контракт маршрутов', () => {
     expect(fileRoute.paths.complete('f1')).toBe('/files/f1/complete');
     expect(fileRoute.paths.downloadUrl('f1')).toBe('/files/f1/download-url');
     expect(fileRoute.paths.content('f1')).toBe('/files/f1/content');
+  });
+
+  it('пути комментариев живут в двух контурах и выводятся из сегментов', () => {
+    expect(commentRoute.documentListPattern).toBe(
+      `/:${commentRoute.documentParam}/${commentRoute.commentsSegment}`,
+    );
+    expect(commentRoute.byIdPattern).toBe(`/:${commentRoute.param}`);
+    expect(commentRoute.paths.list('d1')).toBe('/documents/d1/comments');
+    expect(commentRoute.paths.create('d1')).toBe('/documents/d1/comments');
+    expect(commentRoute.paths.byId('c1')).toBe('/comments/c1');
+    expect(commentRoute.paths.resolve('c1')).toBe('/comments/c1/resolve');
   });
 });

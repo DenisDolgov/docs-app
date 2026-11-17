@@ -1,4 +1,5 @@
 import { AttachmentsPanel } from './attachments-panel';
+import { CommentsPanel } from './comments-panel';
 import { Editor } from './editor';
 import { Navbar } from './navbar';
 import { Room } from './room';
@@ -9,8 +10,13 @@ const DocumentIdPage = () => {
     <Room>
       <Navbar />
       <Toolbar />
-      <Editor />
-      <AttachmentsPanel />
+      <div className="flex items-start">
+        <div className="min-w-0 flex-1">
+          <Editor />
+          <AttachmentsPanel />
+        </div>
+        <CommentsPanel />
+      </div>
     </Room>
   );
 };

@@ -1,0 +1,350 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "ac10ca5b-61a9-454d-b806-73712b56790c",
+  "prevIds": [
+    "1f3e5fba-889a-42a8-a113-d2f10b11a884"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "document",
+        "comments"
+      ],
+      "writes": [
+        "s|tbl|document.comments",
+        "n|tbl|document.comments",
+        "e|tbl|document.comments",
+        "n|rel|document.comments",
+        "n|type|document.comments",
+        "n|rel|document.comments_pkey"
+      ],
+      "reads": [
+        "n|sch|document"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "document",
+        "comments",
+        "comments_document_idx"
+      ],
+      "writes": [
+        "s|idx|document.comments_document_idx",
+        "n|idx|document.comments_document_idx",
+        "e|idx|document.comments_document_idx",
+        "n|rel|document.comments_document_idx"
+      ],
+      "reads": [
+        "n|tbl|document.comments",
+        "n|sch|document",
+        "n|col|document.comments.document_id",
+        "n|col|document.comments.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "document",
+        "comments"
+      ],
+      "writes": [
+        "s|fk|document.comments.comments_document_id_documents_id_fkey",
+        "n|fk|document.comments.comments_document_id_documents_id_fkey",
+        "e|fk|document.comments.comments_document_id_documents_id_fkey",
+        "n|con|document.comments.comments_document_id_documents_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|document.comments",
+        "n|sch|document",
+        "n|tbl|document.documents",
+        "n|sch|document",
+        "n|col|document.comments.document_id",
+        "n|col|document.documents.id",
+        "e|uniqueness|document.documents.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "document",
+        "comments"
+      ],
+      "writes": [
+        "s|fk|document.comments.comments_document_id_parent_id_comments_document_id_id_fkey",
+        "n|fk|document.comments.comments_document_id_parent_id_comments_document_id_id_fkey",
+        "e|fk|document.comments.comments_document_id_parent_id_comments_document_id_id_fkey",
+        "n|con|document.comments.comments_document_id_parent_id_comments_document_id_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|document.comments",
+        "n|sch|document",
+        "n|tbl|document.comments",
+        "n|sch|document",
+        "n|col|document.comments.document_id",
+        "n|col|document.comments.parent_id",
+        "n|col|document.comments.document_id",
+        "n|col|document.comments.id",
+        "e|uniqueness|document.comments.document_id.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "name": "comments",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "uuidv7()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "document_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "parent_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "author_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "body",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "anchor",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "resolved_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "comments_document_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "document_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "comments_document_id_documents_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "document_id"
+        ],
+        "schemaTo": "document",
+        "tableTo": "documents",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "comments_document_id_parent_id_comments_document_id_id_fkey",
+        "nameExplicit": false,
+        "columns": [
+          "document_id",
+          "parent_id"
+        ],
+        "schemaTo": "document",
+        "tableTo": "comments",
+        "columnsTo": [
+          "document_id",
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "comments_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "document",
+        "table": "comments",
+        "name": "body_max_length",
+        "value": "LENGTH(\"body\") <= 5000",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module';
 import { CollabModule } from './collab/collab.module';
+import { CommentModule } from './comment/comment.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { AppValidationPipe } from './common/app-validation.pipe';
 import { OriginGuard } from './common/origin.guard';
@@ -40,6 +41,7 @@ import { StorageModule } from './storage/storage.module';
     OrganizationModule,
     DocumentModule,
     FileModule,
+    CommentModule,
     CollabModule,
     MailModule,
   ],

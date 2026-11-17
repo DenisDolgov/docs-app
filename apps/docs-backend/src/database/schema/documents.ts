@@ -1,12 +1,19 @@
+import { MAX_COMMENT_BODY_LENGTH } from '@docs-app/contracts/comment/limits';
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  check,
+  foreignKey,
   index,
+  jsonb,
   snakeCase,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+import type { CommentAnchor } from '../../comment/comment-anchor';
 
 export const documentSchema = snakeCase.schema('document');
 
@@ -51,5 +58,43 @@ export const documents = documentSchema.table(
       table.updatedAt,
     ),
     index('documents_folder_id_idx').on(table.folderId),
+  ],
+);
+
+// Комментарий — серверная сущность, а не часть CRDT: тело, авторство и права
+// живут в Postgres, якорь лишь ссылается на место в Yjs-документе.
+//
+// TODO(S1): ограничения и индексы. Третий аргумент оставлен пустым намеренно:
+// связи `document_id` и `parent_id`, правило пары `(document_id, parent_id)` и
+// индекс списка по документу — твой кусок. После правок сгенерируй миграцию.
+export const comments = documentSchema.table(
+  'comments',
+  {
+    id: uuid().primaryKey().default(sql`uuidv7()`),
+    documentId: uuid()
+      .notNull()
+      .references((): AnyPgColumn => documents.id, {
+        onDelete: 'cascade',
+      }),
+    parentId: uuid(),
+    authorId: uuid().notNull(),
+    body: text().notNull(),
+    // Якорь хранится как есть (jsonb): форма провалидирована на входе, но
+    // сервер не может проверить позицию без живого документа.
+    anchor: jsonb().$type<CommentAnchor | null>(),
+    resolvedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'body_max_length',
+      sql`LENGTH(${table.body}) <= ${MAX_COMMENT_BODY_LENGTH}`,
+    ),
+    foreignKey({
+      columns: [table.documentId, table.parentId],
+      foreignColumns: [table.documentId, table.id],
+    }).onDelete('cascade'),
+    uniqueIndex('comments_document_idx').on(table.documentId, table.id),
   ],
 );
